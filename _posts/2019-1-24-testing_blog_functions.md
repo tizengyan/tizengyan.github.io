@@ -9,7 +9,6 @@ author: Tizeng
 ---
 
 * content
-
 {:toc}
 
 简短的简介'test'

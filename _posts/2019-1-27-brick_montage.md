@@ -2,7 +2,7 @@
 layout: post
 title:  "笔试题：花砖拼接"
 date:   2019-01-27 11:11:54
-categories: 笔试题
+categories: 题
 tags: quiz
 excerpt: 网易笔试题回顾
 author: Tizeng
