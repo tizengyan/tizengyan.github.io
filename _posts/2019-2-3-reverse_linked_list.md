@@ -3,15 +3,17 @@ layout: post
 title:  "剑指offer：反转链表"
 date:   2019-02-03 9:11:54
 categories: 题
-tags: quiz
-excerpt: 输入一个链表，返回将其反转后的链表头
+tags: 链表 递归
+excerpt: 题目描述：输入一个链表，反转链表后，输出新链表的表头。
 author: Tizeng
 ---
 
 * content
 {:toc}
 
-题目描述：输入一个链表，反转链表后，输出新链表的表头。
+题目描述：
+
+输入一个链表，反转链表后，输出新链表的表头。
 
 ## 思路
 
@@ -53,3 +55,7 @@ ListNode* ReverseList(ListNode* head) {
     return pre;
 }
 ```
+
+## 总结
+
+这题主要考察的是对递归的理解和应用，以及对链表操作的熟练程度。

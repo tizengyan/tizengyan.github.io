@@ -52,3 +52,6 @@ int main(){
 
 正文正文正文
 
+加载图片：
+
+![ ](https://github.com/tizengyan/images/raw/master/brick1.png){:height="70%" width="70%"}

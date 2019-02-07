@@ -18,6 +18,7 @@ author: Tizeng
 ### 代码思路
 
 ```c++
+// 注意最后交换和返回的都是j + 1而非j。
 int partition(vector<int>& v, int left, int right){
     int x = v[right];
     int j = left - 1;
@@ -34,11 +35,12 @@ int partition(vector<int>& v, int left, int right){
 void quickSort(vector<int>& v, int left, int right){
     if(left <= right)
         return;
-    int mid = left + (right - left) / 2;
+    int mid = partition(v, left, right);
     quickSort(v, left, mid - 1);
     quickSort(v, mid + 1, right);
 }
 
+// 在需要的地方直接调用
 quickSort(input, 0, input.size() - 1);
 ```
 
@@ -185,7 +187,7 @@ vector<int> GetLeastNumbers_Solution(vector<int> input, int k) {
 
 合并这些子问题的解成原问题的解。
 
-归并排序是典型的分治法（divide & conquer），核心是`merge`函数，它的功能是将两个已经排好序的序列合并成一个更大的有序序列。
+归并排序是典型的分治法（divide & conquer），核心是`merge`函数，它的功能是将两个已经排好序的序列合并成一个更大的有序序列，需要提一点的是这个函数的空间复杂度是O(n)，用以在排序时储存比较的数组。
 
 实现代码如下：
 
@@ -221,7 +223,7 @@ void mergeSort(vector<int>& v, int left, int right){
 }
 ```
 
-### 用归并排序将一个链表排序（[LeetCode 148](https://leetcode.com/problems/sort-list/)）
+### 1.用归并排序将一个链表排序（[LeetCode 148](https://leetcode.com/problems/sort-list/)）
 
 思路其实和排序数组一样，只是相应的操作会转变成链表的方式。比如我们无法通过下标来找一个链表的中间节点，需要设置两个遍历速度不同的指针，一个指针`slow`每次走一步，另一个指针`fast`一次走两步，这样在`fast`走到链表底端时，`slow`会刚好处于链表正中间。（注意，这里题目要求使用O(1)的空间复杂度）
 
@@ -284,3 +286,62 @@ ListNode* merge(ListNode* l1, ListNode* l2){
 我尝试在不新建节点的情况下来合并，但是似乎反而会使问题更复杂，因此暂时采用这个方法。
 
 还有一个潜在问题是用递归调用函数时可能会在stack中积累占用空间，空间复杂度有可能超过O(1)，这个问题还有待确认。
+
+### 2.数组中的逆序对（[剑指offer 面试题36](https://www.nowcoder.com/practice/96bd6684e04a44eb80e6a68efc0ec6c5?tpId=13&tqId=11188&rp=1&ru=/ta/coding-interviews&qru=/ta/coding-interviews/question-ranking)）
+
+题目描述：
+
+在数组中的两个数字，如果前面一个数字大于后面的数字，则这两个数字组成一个逆序对。输入一个数组，求出这个数组中的逆序对的总数P。
+
+
+这道题最直观的思路就是对每一个元素进行扫描，扫描时与后面所有其他元素进行比较，如果找到逆序对，则`count++`，但是这样的时间复杂度是O(n)，显然不是最优解。
+
+这时我们可以考虑用归并排序的性质来解决这个问题。
+归并排序不停将输入的数组平均分割，直至每个子数组只有一个元素，然后依次合并并排序，层层递归，这里我们只需要在运行归并排序时计算每次合并时第一个子数组相对第二个子数组有多少个逆序对然后累加起来就行了，注意由于合并时默认两个数组都是有序数组，因此如果`v1`中的某个元素`v1[i]`大于`v2`中的某个元素`v2[j]`，则说明存在`j + 1`个逆序对，这点要特别注意。
+还有一点，在合并两个子数组时我选择先将它们的第一个元素初始化为`INT_MIN`，这样做的好处是可以不用讨论当其中一个数组为空的情况，但是要注意如果`j`等于0时，`v1`中如果还有剩余元素需要比较，它们都会大于`v2[0]`，这时不能进行累加。
+
+代码实现如下：
+
+```c++
+long long count = 0; // 注意这里输入数组长度可能非常大，为防止整形溢出采用long long类型
+
+int InversePairs(vector<int> data) {
+    mergeSort(data, 0, data.size() - 1);
+    return count % 1000000007;
+}
+
+void mergeSort(vector<int>& v, int left, int right){
+    if(left >= right)
+        return;
+    int mid = left + (right - left) / 2;
+    mergeSort(v, left, mid);
+    mergeSort(v, mid + 1, right);
+    merge(v, left, mid, right);
+}
+
+void merge(vector<int>& v, int left, int mid, int right){
+    vector<int> v1, v2;
+    v1.push_back(INT_MIN);
+    v2.push_back(INT_MIN);
+    for(int i = left; i <= mid; i++){
+        v1.push_back(v[i]);
+    }
+    for(int i = mid + 1; i <= right; i++){
+        v2.push_back(v[i]);
+    }
+    int i = v1.size() - 1;
+    int j = v2.size() - 1;
+    for(int k = right; k >= left; k--){
+        if(v1[i] > v2[j]){
+            v[k] = v1[i];
+            i--;
+            if(v2[j] != INT_MIN)
+                count += j;
+        }
+        else{
+            v[k] = v2[j];
+            j--;
+        }
+    }
+}
+```
