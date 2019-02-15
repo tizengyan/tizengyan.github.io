@@ -19,7 +19,7 @@ author: Tizeng
 
 这题其实不难，重要的是理清楚思路。首先我们有长度为N的砖块，且N为奇数，在一个边长为M（M>N）的墙上要将砖块完全对称的摆上去，其实就是先对称的用砖块摆好刚好覆盖MxM的区域后，再把边缘处多余的部分裁减掉。代码中则可以先如此生成一个矩阵'q'，再将其中MxM区域的图案一一赋值到一个新的MxM矩阵就行了。
 
-## 代码实现(寝室长特供)
+## 代码实现
 
 ```c++
 vector<vector<char> > f(vector<vector<char> > z, int n, int m){
@@ -52,7 +52,7 @@ vector<vector<char> > f(vector<vector<char> > z, int n, int m){
     return result;
 }
 
-int _tmain(int argc, _TCHAR* argv[]){
+int main(){
     int n, m;
     scanf("%d %d", &n, &m);
     vector<vector<char> > vn;
