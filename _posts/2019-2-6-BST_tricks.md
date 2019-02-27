@@ -2,7 +2,7 @@
 layout: post
 title:  "二叉搜索树的一些常见套路"
 date:   2019-02-06 20:34:54
-categories: BST
+categories: 数据结构
 tags: BST 递归
 excerpt: 层次遍历、反转（镜像）、合并、双向链表、子结构、深度
 author: Tizeng

@@ -2,7 +2,7 @@
 layout: post
 title:  "测试"
 date:   2019-01-24 23:22:54
-categories: test
+categories: 博客测试
 tags: markdown
 excerpt: 博客格式、写法测试
 author: Tizeng

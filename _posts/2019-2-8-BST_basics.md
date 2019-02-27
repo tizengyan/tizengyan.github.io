@@ -2,7 +2,7 @@
 layout: post
 title:  "二叉树基础"
 date:   2019-02-08 00:14:54
-categories: BST
+categories: 数据结构
 tags: BST 递归
 excerpt: 遍历、前驱后继、查找、插入、删除、旋转
 author: Tizeng

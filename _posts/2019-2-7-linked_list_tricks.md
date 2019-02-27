@@ -2,7 +2,7 @@
 layout: post
 title:  "链表的一些常见套路"
 date:   2019-02-06 20:34:54
-categories: 链表
+categories: 考点
 tags: 链表 递归
 excerpt: 合并、反转
 author: Tizeng

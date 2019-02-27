@@ -2,7 +2,7 @@
 layout: post
 title:  "快排、归并排序总结"
 date:   2019-01-27 11:01:54
-categories: algorithm
+categories: 基础算法
 tags: sorting
 excerpt: 总结一下快速排序和归并排序的思路，以及应用
 author: Tizeng
