@@ -4,7 +4,7 @@ title:  "字符串的常见套路"
 date:   2019-02-25 10:10:54
 categories: 考点
 tags: string
-excerpt: 整理一下字符串的一些套路
+excerpt: 整理一下字符串的一些套路  
 author: Tizeng
 ---
 
@@ -91,6 +91,21 @@ int main () {
 
 顾名思义，将输入的字符串完全反向，然后输出。如`abcd`输出`dcba`。
 
+要实现这个并不难，只需要循环的交换头尾元素即可。
+
+```c++
+void reverseString(vector<char>& s) {
+    int i = 0, j = s.size() - 1;
+    if(s.size() == 0)
+        return;
+    while(i < j){
+        swap(s[i], s[j]);
+        i++;
+        j--;
+    }
+}
+```
+
 ### 反转一个整数
 
 #### 转换成字符串实现
@@ -135,12 +150,6 @@ int reverse(int x) {
         return 0;
     return x > 0 ? res : res * -1;
 }
-```
-
-### 反转字符串
-
-```c++
-
 ```
 
 ## 旋转字符串（或数组）
