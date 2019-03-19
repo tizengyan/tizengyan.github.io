@@ -1,17 +1,19 @@
 ---
 layout: post
-title:  "光线追踪学习笔记1"
+title:  "光线追踪学习笔记1——基本类和图像"
 #date:   2019-03-14 16:08:54
 categories: 图形学
 tags: ray_tracing
-excerpt: 以ppm格式输出图像
+excerpt: 以ppm格式输出图像，创建基本类vec3（章节1、2）
 author: Tizeng
 ---
 
 * content
 {:toc}
 
-## 电子书《Ray tracing in one weekend》读书笔记，chapter 1
+## 电子书《Ray tracing in one weekend》读书笔记
+
+### Chapter 1: Output an image
 
 这里建立一个用于储存三维向量信息的类`vec3`，并重载了所需的各种运算符。
 
@@ -25,13 +27,15 @@ author: Tizeng
 
 再补充几个知识点，`vec3`实现了向量的叉乘，向量叉乘的定义如下：
 
-![vector cross](https://github.com/tizengyan/images/raw/master/vector_cross.png)
+![vector_cross](https://github.com/tizengyan/images/raw/master/vector_cross.png)
 
 ppm的全称是portable pixmap format，除此之外还有portable bitmap format (PBM)、portable graymap format (PGM)，也可以统称为portable anymap format (PNM)，在PPM文件中信息被这样保存：
 
-![ppm](https://github.com/tizengyan/images/raw/master/ppm_info.png)
+![ppm_info](https://github.com/tizengyan/images/raw/master/ppm_info.png)
 
-下面是代码：
+因此我们只要按这个格式规定好行列的像素数和格式，然后将像素的信息按RGB顺序一个个写入就可以生成一张图像了。
+
+下面是主函数代码：
 
 ```c++
 #include <iostream>
@@ -39,6 +43,36 @@ ppm的全称是portable pixmap format，除此之外还有portable bitmap format
 
 using namespace std;
 
+int main() {
+    int nx = 200;
+    int ny = 100;
+    fstream fs;
+    fs.open("test.ppm", std::fstream::in | std::fstream::out | std::fstream::app);
+    //cout << "P3\n" << nx << " " << ny << "\n255\n";
+    fs << "P3\n" << nx << " " << ny << "\n255\n";
+    for (int j = ny - 1; j >= 0; j--) {
+        for (int i = 0; i < nx; i++) {
+            //float r = float(i) / float(nx);
+            //float g = float(j) / float(ny);
+            //float b = 0.2;
+            vec3 v(float(i) / float(nx), float(j) / float(ny), 0.2);
+            int ir = int(255.99 * v[0]);
+            int ig = int(255.99 * v[1]);
+            int ib = int(255.99 * v[2]);
+            //cout << ir << " " << ig << " " << ib << "\n";
+            fs << ir << " " << ig << " " << ib << "\n";
+        }
+    }
+    fs.close();
+    return 0;
+}
+```
+
+### Chapter 2: The vec3 class
+
+然后是储存三维信息的`vec3`类的定义，这个类非常关键，后面几乎所有的操作都要用到这个类，此基础不牢，定地动山摇。除了用来记录向量的坐标，还可以储存像素的RGB值，因为它也是三维的：
+
+```c++
 class vec3 {
 public:
     vec3() {}
@@ -173,29 +207,5 @@ inline vec3& vec3::operator/=(const float t) {
 
 inline vec3 unit_vector(vec3 v) {
     return v / v.length();
-}
-
-int main() {
-    int nx = 200;
-    int ny = 100;
-    fstream fs;
-    fs.open("test.ppm", std::fstream::in | std::fstream::out | std::fstream::app);
-    //cout << "P3\n" << nx << " " << ny << "\n255\n";
-    fs << "P3\n" << nx << " " << ny << "\n255\n";
-    for (int j = ny - 1; j >= 0; j--) {
-        for (int i = 0; i < nx; i++) {
-            //float r = float(i) / float(nx);
-            //float g = float(j) / float(ny);
-            //float b = 0.2;
-            vec3 v(float(i) / float(nx), float(j) / float(ny), 0.2);
-            int ir = int(255.99 * v[0]);
-            int ig = int(255.99 * v[1]);
-            int ib = int(255.99 * v[2]);
-            //cout << ir << " " << ig << " " << ib << "\n";
-            fs << ir << " " << ig << " " << ib << "\n";
-        }
-    }
-    fs.close();
-    return 0;
 }
 ```

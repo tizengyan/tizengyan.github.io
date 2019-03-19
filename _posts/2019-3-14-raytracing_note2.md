@@ -1,17 +1,17 @@
 ---
 layout: post
-title:  "光线追踪学习笔记2"
+title:  "光线追踪学习笔记2——光线"
 #date:   2019-03-14 16:08:54
 categories: 图形学
 tags: ray_tracing
-excerpt: 开始制作光线
+excerpt: 开始制作光线（章节3）
 author: Tizeng
 ---
 
 * content
 {:toc}
 
-## Ray tracing in one weekend chapter 3
+## Chapter 3: Rays, a simple camera, and background
 
 定义一个光线类`ray`，从点`A`照向点`B`，根据输入参数`t`控制长度。将屏幕按通常习惯分为xy轴，建立右手坐标系，此时z轴的正向应垂直于屏幕射向我们。
 

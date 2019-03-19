@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "光线追踪学习笔记4"
+title:  "光线追踪学习笔记4——材质"
 #date:   2019-03-14 16:08:54
 categories: 图形学
 tags: ray_tracing
-excerpt: 加特技
+excerpt: 加特技（章节6、7、8）
 author: Tizeng
 ---
 
@@ -13,7 +13,9 @@ author: Tizeng
 
 ## Chapter 6: Antialiasing
 
-这一章告诉我们如何把物体的边缘和环境融合的更好，而不是单纯的颜色变换。进一步的创建`camera`类，和一个可以随机出落在[0, 1)范围内随机数的函数，在每次着色时对像素周围的其他像素进行取样，取样数量定为`ns=100`，着色前将所有样本的像素值平均，得到当前像素值，这样输出的图像在边缘就会有模糊的效果。
+这一章告诉我们如何把物体的边缘和环境融合的更好，而不是单纯又突兀的颜色变换。
+
+创建`camera`类，和一个可以随机出落在[0, 1)范围内随机数的函数，在每次着色时对像素周围的其他像素进行取样，取样数量定为`ns=100`，着色前将所有样本的像素值平均，得到当前像素值，这样输出的图像在边缘就会有模糊的效果。
 
 ```c++
 class camera {
@@ -37,49 +39,30 @@ private:
 };
 ```
 
-下面是修改过后，用`camera`类实现的前面的效果代码：
+还需要一个返回[0,1)随机数的函数，用于对像素周围的点取样：
 
 ```c++
 float drand() {
     return (float)rand() / (RAND_MAX + 1);
 }
+```
 
-int main() {
-    int nx = 200;
-    int ny = 100;
-    int ns = 100;
-    fstream fs;
-    fs.open("test.ppm", std::fstream::in | std::fstream::out | fstream::trunc);
-    //cout << "P3\n" << nx << " " << ny << "\n255\n";
-    fs << "P3\n" << nx << " " << ny << "\n255\n";
+有了摄像机类，我们就可以在主函数中创建其对象，实现之前的效果，可以看到此时物体的边缘更好的与环境融合：
 
-    hitable *list[2];
-    list[0] = new sphere(vec3(0, 0, -1), 0.5);
-    list[1] = new sphere(vec3(0, -100.5, -1), 100);
-    hitable_list *world = new hitable_list(list, 2);
-    camera cam;
-    for (int j = ny - 1; j >= 0; j--) {
-        for (int i = 0; i < nx; i++) {
-            vec3 col(0, 0, 0);
-            for (int s = 0; s < ns; s++) {
-                float u = float(i + drand()) / float(nx);
-                float v = float(j + drand()) / float(ny);
+```c++
+int ns = 100;
+camera cam;
+...
+for (int s = 0; s < ns; s++) {
+    float u = float(i + drand()) / float(nx);
+    float v = float(j + drand()) / float(ny);
 
-                ray r = cam.get_ray(u, v);
-                vec3 p = r.point_at_parameter(2.0);
-                col += color(r, world);
-            }
-            col /= float(ns);
-            int ir = int(255.99 * col[0]);
-            int ig = int(255.99 * col[1]);
-            int ib = int(255.99 * col[2]);
-            //cout << ir << " " << ig << " " << ib << "\n";
-            fs << ir << " " << ig << " " << ib << "\n";
-        }
-    }
-    fs.close();
-    return 0;
+    ray r = cam.get_ray(u, v);
+    vec3 p = r.point_at_parameter(2.0);
+    col += color(r, world);
 }
+col /= float(ns);
+...
 ```
 
 输出图像：
@@ -88,7 +71,11 @@ int main() {
 
 ## Chapter 7: Diffuse Materials
 
-现在实现一个漫反射物体的效果，漫反射表面不会发出光线，而是将射过来的光线反射至随机方向，并根据自身的颜色做出调整，因此若光线射入两个平面的缝隙，在这两个平面上会各自发生随机的漫反射，这很容易理解。下面这张示意图有点容易产生误解，要结合原文描述仔细揣摩：
+本章实现一个漫反射物体的效果。
+
+### 漫反射模型
+
+漫反射表面不会发出光线，而是将射过来的光线反射至随机方向，并根据自身的颜色做出调整，因此若光线射入两个平面的缝隙，在这两个平面上会各自发生随机的漫反射，这很容易理解。下面这张示意图有点容易产生误解，要结合原文描述仔细揣摩：
 
 ![tangent_sphere](https://github.com/tizengyan/images/raw/master/tangent_sphere.png)
 
@@ -134,7 +121,7 @@ int ig = int(255.99 * col[1]);
 int ib = int(255.99 * col[2]);
 ```
 
-改进后的效果如下所示：
+效果如下所示：
 
 ![sphere_shade](https://github.com/tizengyan/images/raw/master/sphere_shade.png)
 
@@ -155,6 +142,11 @@ inline vec3 reflect(const vec3& v, const vec3& n) {
 我们可能需要多种材质，这时可以先建立一个抽象类`material`，然后根据不同材质的需要去实现散射函数，比如我们先实现一个漫反射性质的材料和一个金属质的材料：
 
 ```c++
+class material {
+public:
+    virtual bool scatter(const ray& ray_in, const hit_record& rec, vec3& attenuation, ray& scattered) const = 0;
+};
+
 class lambertian :public material {
 private:
     vec3 albedo;
@@ -185,6 +177,8 @@ private:
 这里漫反射材质和上一章的实现一样，反射的光线向量为反射点向量`p`加上法线向量`N`，即是（从原点出发）指向与`p`点相切的单位球球心的向量，再加上球内随机的一点，就是反射过后的光线向量坐标，记为`target`，要得到它的光线表示，即用`ray`类型表示，它的起始点是`p`，方向向量为`target - p`，然后将得出的反射光线变量保存至`scattered`。
 
 对于金属材质来说，我们首先要获得反射后的向量`reflected`，在这之前我们需要获得入射向量并将其单位化，然后与入射点的法线向量一同带入之前的`reflect`函数。得到反射向量后，便可以将其保存进`scattered`从而得到反射后的光线变量。
+
+### 对不同材料着色
 
 变量`attenuation`就是材质在三个维度的衰减程度，它会影响后面着色时取到的像素值的高低。每次射入光线时都要更新这个值，告诉外部我应该以什么样的反射率来计算像素值。另外，如果反射角大于九十度，说明光线被物体吸收，不做反射，漫反射材质没有做这个判断是因为我们始终在表面的一个单位球中寻找反射向量，因此始终返回`true`。
 
@@ -217,8 +211,8 @@ vec3 color(const ray& r, hitable *world, int depth) {
     hitable *list[4];
     list[0] = new sphere(vec3(0, 0, -1), 0.5, new lambertian(vec3(0.8, 0.3, 0.3)));
     list[1] = new sphere(vec3(0, -100.5, -1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
-    list[2] = new sphere(vec3(1,  0, -1), 0.5, new metal(vec3(0.8,0.6,0.2)));
-    list[3] = new sphere(vec3(-1, 0, -1), 0.5, new metal(vec3(0.8,0.8,0.8)));
+    list[2] = new sphere(vec3( 1, 0, -1), 0.5, new metal(vec3(0.8,0.6,0.2))); // 金属球
+    list[3] = new sphere(vec3(-1, 0, -1), 0.5, new metal(vec3(0.8,0.8,0.8))); // 金属球
     hitable_list *world = new hitable_list(list, 4);
 ```
 
@@ -226,7 +220,7 @@ vec3 color(const ray& r, hitable *world, int depth) {
 
 ![sphere_metal](https://github.com/tizengyan/images/raw/master/sphere_metal.png)
 
-## 模糊效果
+### 模糊效果
 
 对于金属材质，我们可以给它增加一个模糊效果，方法很简单，即在反射光线向量顶端做一个单位球，让它随机的在这个球内进行偏移，具体看下图：
 

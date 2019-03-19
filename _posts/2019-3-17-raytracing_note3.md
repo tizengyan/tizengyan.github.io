@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "光线追踪学习笔记3"
+title:  "光线追踪学习笔记3——添加球"
 #date:   2019-03-14 16:08:54
 categories: 图形学
 tags: ray_tracing
-excerpt: 开始画球
+excerpt: 开始画球（章节4、5）
 author: Tizeng
 ---
 
