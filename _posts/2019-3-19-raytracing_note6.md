@@ -101,3 +101,49 @@ camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx) / float(ny), aperture,
 
 终于到最后一章了，真是可喜可贺！
 
+这一章应用之前讲的系统，随机生成一个有许多不同材质的球的场景，其中有玻璃材质、金属材质和粗糙（漫反射）材质，函数`random_scene`就是为了实现这个功能，它返回一个`hitable_list`，其中包含了随机生成的众多球，再由主函数来着色：
+
+```c++
+hitable *random_scene() {
+    int n = 150;
+    hitable **list = new hitable*[n + 1];
+    list[0] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(vec3(0.5, 0.5, 0.5))); // 生成平面（其实就是一个巨大的球）
+    int i = 1;
+    for (int a = -11; a < 11; a = a + 2) {
+        for (int b = -11; b < 11; b = b + 2) {
+            float choose_mat = drand();
+            vec3 center(a + 0.9 * drand(), 0.2, b + 0.9 * drand());
+            if ((center - vec3(4,2,0)).length() > 0.9) {
+                if (choose_mat < 0.8) { // diffuse
+                    list[i++] = new sphere(center, 0.2, new lambertian(vec3(drand() * drand(), drand() * drand(), drand() * drand())));
+                }
+                else if (choose_mat < 0.95) { // metal
+                    list[i++] = new sphere(center, 0.2, 
+                        new metal(vec3(0.5 * (1 + drand()), 0.5 * (1 + drand()), 0.5 * (1 + drand())), 0.5 * drand()));
+                }
+                else { // glass
+                    list[i++] = new sphere(center, 0.2, new dielectric(1.5));
+                }
+            }
+        }
+    }
+
+    list[i++] = new sphere(vec3(0, 1, 0), 1.0, new dielectric(1.5));
+    list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
+    list[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+
+    return new hitable_list(list, i);
+}
+```
+
+首先生成一个半径很大的球作为地面，其他的球散落在上面，当这个球足够大时，近似可以被当成一个平面，因此只要将其他小球的纵坐标y设为自己的半径就行了。
+
+为了让小球的位置尽可能的随机，我们在循环的时候可以利用一下循环变量，让小球均匀分布在摄像机的视角内。每次生成球之前取一个随机数`choose_mat`，用来选择球的材质，在条件语句中通过阈值来控制不同材质出现的比例。最后生成三个不同材质的稍大一点的球，放在场景中间。
+
+另外还可以利用镜头朝向和光圈大小来对焦，实现背景虚化，但光圈不宜过大，否则画面会非常模糊，下面是光圈为0.2，分辨率为640x360时的效果图，此时对焦的是最右边的大金属球，可以看到除了对焦对象之外其余的物体都比较模糊：
+
+![random_scene1](https://github.com/tizengyan/images/raw/master/random_scene1.png)
+
+再试一下光圈为0.05时的效果，并增加分辨率到720p：
+
+![random_scene2](https://github.com/tizengyan/images/raw/master/random_scene2.png)
