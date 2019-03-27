@@ -9,8 +9,13 @@ type: page
 * content
 {:toc}
 
-## 工具
+## 学习资料
 
+* [阮一峰的博客](http://www.ruanyifeng.com/blog/computer/)
+
+* [TCP的那些事儿（下）](https://coolshell.cn/articles/11609.html)
+
+<!--
 * [box-shadow generator](http://www.cssmatic.com/box-shadow)
 
     生成 box-shadow 的工具。
@@ -222,6 +227,8 @@ Syntax Theme: Atom Dark or One Dark
 
     <!-- ![](http://ww4.sinaimg.cn/large/7011d6cfjw1f08kmplbj1j20gn05l0tk.jpg) -->
 
+<!--
+
 ## Chrome 插件
 - [Octotree](https://chrome.google.com/webstore/detail/octotree/bkhaagjahfmjljalopjnoealnfndnagc)
 
@@ -293,3 +300,4 @@ Syntax Theme: Atom Dark or One Dark
 ## Comments
 
 {% include comments.html %}
+-->

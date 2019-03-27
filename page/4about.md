@@ -11,8 +11,13 @@ type: page
 
 ## 关于我
 
+一个想进游戏行业想疯了的普通毕业生
+
+## 关于此博客模板的作者
+
 <iframe src="https://githubbadge.appspot.com/gaohaoyang?s=1" style="border: 0;height: 142px;width: 200px;overflow: hidden;" frameBorder="0"></iframe>
 
+<!--
 就职于阿里巴巴，前端开发。
 
 主要兴趣集中在前端开发，大前端的概念深入我心。将更多的业务逻辑放在前端中，这很有趣。同时，将自己构想的内容实现出来，这种感觉很愉快。
@@ -99,3 +104,4 @@ type: page
 ## Comments
 
 {% include comments.html %}
+-->

@@ -74,7 +74,7 @@ int main() {
 
 输出：
 
-> a is: class CBase * <br>b is: class CBase *<br>*a is: class CBase<br>*b is: class CDerived
+> a is: class CBase * <br>b is: class CBase * <br>* a is: class CBase<br>*b is: class CDerived
 
 当输入为空指针时，它会抛出一个`bad_typeid`异常。
 
@@ -120,9 +120,9 @@ Derived *pd4 = dynamic_cast<Derived *>(p); // 返回NULL
 
 * 指向子类的基类指针转为指向基类，即向上转换，转换成功（不需要多态基类）
 
-* 指向子类的基类指针转为子类，即安全的向下转换，转换成功（需要多态基类）
+* 指向子类的基类指针转为子类指针，即安全的向下转换，转换成功（需要多态基类）
 
-* 指向基类的基类指针转为子类，即不安全的向下转换，返回`NULL`（需要多态基类）
+* 指向基类的基类指针转为子类指针，即不安全的向下转换，返回`NULL`（需要多态基类）
 
 * 可以将任何类型的指针转换为`void*`
 
@@ -134,7 +134,7 @@ Derived *pd4 = dynamic_cast<Derived *>(p); // 返回NULL
 
 这个转换方式用来将一种类型的指针转换成另一种类型的指针，不管它们是否相关，这是一个很不安全也没有意义的操作，但如果使用不当，`reinterpret_cast`会极易引发bug。
 
-它唯一的保证是讲一个指针转化为`int`型时，只要`int`有足够大的空间容纳，就可以将它转化回那个指针。
+它唯一的保证是将一个指针转化为`int`型时，只要`int`有足够大的空间容纳，就可以将它转化回那个指针。
 
 ## CV（const and volatile）类型限定
 
