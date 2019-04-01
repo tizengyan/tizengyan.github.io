@@ -142,7 +142,7 @@ hitable *random_scene() {
 
 另外还可以利用镜头朝向和光圈大小来对焦，实现背景虚化，但光圈不宜过大，否则画面会非常模糊，下面是光圈为0.2，分辨率为640x360时的效果图，此时对焦的是最右边的大金属球，可以看到除了对焦对象之外其余的物体都比较模糊：
 
-![random_scene1](https://github.com/tizengyan/images/raw/master/random_scene1.ppm)
+![random_scene1](https://github.com/tizengyan/images/raw/master/random_scene1.png)
 
 再试一下光圈为0.07时的效果，调整摄像机位置并增加分辨率到720p：
 

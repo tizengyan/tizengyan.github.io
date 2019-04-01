@@ -15,6 +15,10 @@ type: page
 
 * [TCP的那些事儿（下）](https://coolshell.cn/articles/11609.html)
 
+* [game programming patterns](http://gameprogrammingpatterns.com/contents.html)
+
+* [game programming patterns中文版](https://gpp.tkchu.me/acknowledgements.html)
+
 <!--
 * [box-shadow generator](http://www.cssmatic.com/box-shadow)
 

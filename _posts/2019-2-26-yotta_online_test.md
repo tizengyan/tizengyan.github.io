@@ -153,4 +153,53 @@ int main() {
 
 ![yotta3](https://github.com/tizengyan/images/raw/master/yotta3.png)
 
-这道题目前还没有看，不过看起来像一个背包问题
+这道题的输入是一排英雄，这些英雄有两种状态，即觉醒和不觉醒，分别有不同的价值（战斗力）和费用（能量消耗），那么意味着我如果选了其中一个英雄的觉醒状态就不能选非觉醒状态，反之亦然，也就是说这两种状态互斥，那么我们可以把它看成一个分组的背包问题，每个英雄的两种状态自成一组，一共有输入的英雄数量的组，然后用分组的背包问题的思路去解决：
+
+```c++
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+using namespace std;
+
+vector<int> w1, w2, v1, v2;
+int n, C;
+
+void init() {
+    ifstream infile;
+    infile.open("input.txt");
+    int w, val;
+    infile >> n >> C;
+    cout << "n = " << n << ", C = " << C << endl;
+    int i = 0;
+    while (i < n) {
+        infile >> w >> val;
+        w1.push_back(w);
+        v1.push_back(val);
+        infile >> w >> val;
+        w2.push_back(w + w1[i]);
+        v2.push_back(val + v1[i++]);
+    }
+    infile.close();
+}
+
+int solve() {
+    vector<int> f(C + 1);
+    for (int i = 0; i < n; i++) { // 组的数目就是输入英雄的数目
+        for (int j = C; j >= 0; j--) {
+            if (j >= w1[i]) // 未觉醒组
+                f[j] = max(f[j], f[j - w1[i]] + v1[i]);
+            if (j >= w2[i]) // 觉醒组
+                f[j] = max(f[j], f[j - w2[i]] + v2[i]);
+        }
+    }
+    return f[C];
+}
+
+int main() {
+    init();
+    cout << solve() << endl;
+    system("pause");
+    return 0;
+}
+```

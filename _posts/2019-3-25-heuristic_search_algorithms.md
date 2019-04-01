@@ -18,8 +18,8 @@ author: Tizeng
 
 蒙特卡洛树搜索简称 MCTS ，是一种广泛应用在游戏中的搜索算法，尤其在围棋中应用甚多。
 
-## 原理
+### 流程
 
-## 上限置信区间算法（Upper Confidence Bounds to Trees）
+### 上限置信区间算法（Upper Confidence Bounds to Trees）
 
 UCT

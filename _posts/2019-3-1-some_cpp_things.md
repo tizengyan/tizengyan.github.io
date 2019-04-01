@@ -139,3 +139,30 @@ printf("arr[0] = %d, arr[1] = %d, *p = %d", arr[0], arr[1], *p);
 最后来看`*++p`，与第一种情况一样，前缀`++`和取值`*`优先级相同，但它们的方向都是从右往左，所以应该改写为`*(++p)`，得到输出：
 
 > arr[0] = 10, arr[1] = 20, *p = 20
+
+## 文件和流
+
+常规输入输入`cout`和`cin`需要包含`iostream`头文件，而当我们需要从文件中读写数据时，就需要包含`fstream`头文件。具体看代码：
+
+```c++
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
+int main(){
+    ostream outFile; // 以写模式打开文件
+    outFile.open("filename");
+    int data;
+    cin >> data;
+    outFile << data << endl; // 写入数据
+    outFile.close(); // 关闭文件
+
+    ifstream inFile; // 以读模式打开文件
+    inFile.open("filename");
+    inFile >> data; // 读取文件的数据
+    cout << data << endl; // 在屏幕上打印读取的数据
+    inFile.close(); // 关闭打印的文件
+    return 0;
+}
+```
