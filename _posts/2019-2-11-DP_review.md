@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "动态规划总结（待完成）"
+title:  "《算法导论》中的动态规划（待完成）"
 date:   2019-02-11 12:12:54
 categories: 基础算法
 tags: dynamic_programming

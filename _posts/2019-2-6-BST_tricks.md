@@ -293,26 +293,50 @@ TreeNode* construct(vector<int>& pre, vector<int>& inorder, int l1, int r1, int 
 }
 ```
 
-## 8.二叉树中和为某一值的路径
+## 8.二叉树中和为某一值的路径（[LeetCode 113](https://leetcode.com/problems/path-sum-ii/)）
 
 输入一颗二叉树的跟节点和一个整数，打印出二叉树中结点值的和为输入整数的所有路径。路径定义为从树的根结点开始往下一直到叶结点所经过的结点形成一条路径。(注意: 在返回值的list中，数组长度大的数组靠前)
 
-这题如果充分利用递归的性质，代码可以很简洁，首先base case是遍历到`NULL`时，直接返回，而只要节点不为`NULL`，就将此时的`n`减去其值，减去的值存入`path`，然后判断有没有到达根节点且`n`刚好为0，如果是，则说明这是一条满足条件的路径，把它加入`ans`，如果不是，有两种情况，一是已经到达叶子节点，但是`n`不为0，另一种是还未到达叶子节点（无论`n`是否为0），这两种情况我们都继续遍历当前节点的左右子树，完毕后将之前推入`path`的值弹出，回到上一层继续遍历。
+这题如果充分利用递归的性质，代码可以很简洁，首先base case是遍历到`NULL`时，直接返回，而只要节点不为`NULL`，就将此时的`n`减去其值，并将值存入`path`，然后判断有没有到达根节点且`n`刚好为0，如果是，则说明这是一条满足条件的路径，把它加入`ans`，如果不是，有两种情况，一是已经到达叶子节点，但是`n`不为0，另一种是还未到达叶子节点（无论`n`是否为0），这两种情况我们都继续遍历当前节点的左右子树，完毕后将之前推入`path`的值弹出，回到上一层继续遍历。
 
 ```c++
-vector<vector<int> > ans;
-vector<int> path;
+vector<vector<int>> pathSum(TreeNode* root, int sum) {
+    vector<vector<int> > res;
+    vector<int> path;
+    findPath(root, sum, res, path);
+    return res;
+}
 
-void FindPath(TreeNode* root, int n) {
-    if(root == NULL)
+void findPath(TreeNode* node, int sum, vector<vector<int> >& res, vector<int>& path){
+    if(node == NULL)
         return;
-    n -= root->val;
-    path.push_back(root->val);
-    if(n == 0 && root->left == NULL && root->right == NULL){
-        ans.push_back(path);
-    }
-    FindPath(root->left, n);
-    FindPath(root->right, n);
+    path.push_back(node->val);
+    sum -= node->val;
+    if(sum == 0 && node->left == NULL && node->right == NULL)
+        res.push_back(path);
+    findPath(node->left, sum, res, path);
+    findPath(node->right, sum, res, path);
     path.pop_back();
+}
+```
+
+这道题还有一些变种，如[LeetCode 437](https://leetcode.com/problems/path-sum-iii/)，这题同样是找路径和为某一值的数量，但现在规定路径不一定要从根节点开始也不需要在叶子节点结束，且要求的是满足和为输入`sum`的路径数量。这里有两层递归，第一层是从上至下遍历二叉树的所有节点（DFS），然后再对每一个节点下面的所有路径做检查：
+
+```c++
+int pathSum(TreeNode* root, int sum) {
+    if(root == NULL)
+        return 0;
+    return findPath(root, sum) + pathSum(root->left, sum) + pathSum(root->right, sum);
+}
+
+int findPath(TreeNode* node, int sum){
+    int res=0;
+    if(node == NULL)
+        return 0;
+    if(sum == node->val)
+        res++;
+    res += findPath(node->left, sum - node->val);
+    res += findPath(node->right, sum - node->val);
+    return res;
 }
 ```

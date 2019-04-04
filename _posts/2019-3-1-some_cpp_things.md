@@ -140,7 +140,7 @@ printf("arr[0] = %d, arr[1] = %d, *p = %d", arr[0], arr[1], *p);
 
 > arr[0] = 10, arr[1] = 20, *p = 20
 
-## 文件和流
+## 8.文件和流
 
 常规输入输入`cout`和`cin`需要包含`iostream`头文件，而当我们需要从文件中读写数据时，就需要包含`fstream`头文件。具体看代码：
 
@@ -166,3 +166,43 @@ int main(){
     return 0;
 }
 ```
+
+## 9.typedef关键词
+
+`typedef`会定义一种类型的别名，而不是像`#define`一样简单的替换字符串，举个简单的例子：
+
+```c++
+typedef char* charp2;
+#define charp1 char*
+
+int main() {
+    charp1 p1, p2;
+    charp2 p3, p4;
+    cout << "type p1, p2: " << typeid(p1).name() << ", " << typeid(p2).name() << endl;
+    cout << "type p3, p4: " << typeid(p3).name() << ", " << typeid(p4).name() << endl;
+    system("pause");
+    return 0;
+}
+```
+
+输出：
+
+> type p1, p2: char *, char
+>
+> type p3, p4: char *, char *
+
+首先`#define`后面不能加分号，否则会把分号一起并入宏定义。然后可以看到由于只是单纯的替换字符串，定义指针时除了第一变量外其余的都没有定义成指针变量。
+
+```c++
+char s[] = "abcd";
+const charp1 p1 = s;
+const charp2 p2 = s;
+p1++;
+p2++; // compile error
+```
+
+可以看到这里`p2`并不是将被指向的对象设为常量，而是常量的指针，因此不可以对指针的指向做改动。
+
+## 10.extern关键词
+
+用来在文件中重新声明在其他文件（模块）中定义的全局变量，或者我们可以直接包含定义了全局变量的头文件。
