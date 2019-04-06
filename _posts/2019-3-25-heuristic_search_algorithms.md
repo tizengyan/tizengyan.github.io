@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "启发式搜索算法（待完成）"
-categories: 基础知识
+categories: 算法
 tags: algorithm
 excerpt: 总结一下三种常见的搜索算法
 author: Tizeng

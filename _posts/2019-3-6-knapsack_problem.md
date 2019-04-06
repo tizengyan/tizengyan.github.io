@@ -230,7 +230,7 @@ void MultiplePack(vector<int>& f, int wi, int vi, int mi, int C){
     int k = 1;
     // 1, 2, ..., 2^(k-1)
     while(k < mi){
-        ZeroPack(f, wi * k, vi * k, C);
+        ZeroOnePack(f, wi * k, vi * k, C);
         mi -= k;
         k *= 2;
     }
