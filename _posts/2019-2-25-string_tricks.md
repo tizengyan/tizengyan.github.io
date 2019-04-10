@@ -272,13 +272,5 @@ void rotate_recursion(vector<int> &nums, int l, int r, int k){
 }
 ```
 
-## 8.翻转句子中单词的顺序
-
-即将输入的一句英文中的单词顺序反向后输出，例如`I am a student.`翻转之后变成`student. a am I`。
-
-```c++
-
-```
-
-## 9.字符串中的最长重复子串
+## 8.字符串中的最长重复子串
 

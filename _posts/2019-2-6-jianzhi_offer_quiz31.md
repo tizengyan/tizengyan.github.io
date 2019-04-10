@@ -26,6 +26,8 @@ author: Tizeng
 
 ![formula](https://github.com/tizengyan/images/raw/master/dp_formula.png){:height="70%" width="70%"}
 
+**这段代码有问题！！**
+
 ```c++
 int FindGreatestSumOfSubArray(vector<int> arr) {
     if(arr.size() == 0)
@@ -47,3 +49,31 @@ int FindGreatestSumOfSubArray(vector<int> arr) {
 ```
 
 这里需要注意判断重置`cur`和`max`的条件，必须同时满足当前累积的值`cur < 0`且`arr[i] > max`时才能重置，否则即使当前的数字比之前累积的和要大，如果累积的值为正数，我们仍然应该继续累积。
+
+2019-4-10更新：
+
+实时证明，上面这个算法有问题，虽然通过了[牛客网的测试](https://www.nowcoder.com/practice/459bd355da1549fa8a49e350bf3df484?tpId=13&tqId=11183&rp=1&ru=%2Fta%2Fcoding-interviews&qru=%2Fta%2Fcoding-interviews%2Fquestion-ranking&tPage=2)，但是没有通过[LeetCode 53](https://leetcode.com/problems/maximum-subarray/submissions/)的测试。
+
+举例输入数组[8,-19,5,-4,20]，由上面的程序逻辑，初始化`cur=0`（这里其实应该用`sum`，否则很容易误导人，给阅读代码带来误读的可能，这也是个教训），8比max大，但cur为0，因此累加，cur和max都更新为8，然后-19，它不比max大，因此继续累加，cur=8-19=-11，max不变，然后是5，它不比max大，继续累加cur=-11+5=-6，也不必max大，继续看-4，累加cur=-10，然后发现最后的20比max和cur都大，且cur小于0，然后更新max为20，GG。
+
+这个写法本身就让人不舒服，命名又会产生歧义，给阅读带来障碍，难以debug，以后写代码一定要朝清晰、易懂的思路去写，不然会给后续的工作带来诸多不便，这次影响到了一次笔试，让我在笔试途中停下来思考很久还得不出结果，又确信以前应该是留下了正确的笔记，因为通过了牛客网的测试，可见：
+
+1. 让自己不舒服的代码即使通过了测试也要将其修改为清晰的版本
+
+2. 牛客网的测试案例还有待改进，不能盲目迷信。
+
+正确的做法应该是这样：
+
+```c++
+int maxSubArray(vector<int>& nums) {
+    int sum = 0;
+    int maxN = INT_MIN;
+    for(int j = 0; j < nums.size(); j++){
+        sum = max(sum + nums[j], nums[j]);
+        maxN = max(maxN, sum);
+    }
+    return maxN;
+}
+```
+
+其实思路很简单，根本不需要比来比去，遍历时更新`sum`，比较叠加了nums[i]的情况和没有叠加的情况，选大的，然后更新`maxN`，没了。
