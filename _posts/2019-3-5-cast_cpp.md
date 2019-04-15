@@ -194,19 +194,3 @@ int main(){
 //  const_cast<int&>(r2) = 2; // undefined behavior: attempt to modify const object n2
 }
 ```
-
-在类的成员函数中，要声明一个`const`类型的类成员函数，只需要在成员函数参数列表后加上关键字`const`，如：
-
-```c++
-int get() const;
-```
-
-若将成员函数声明为`const`，则：
-
-1.该函数不允许修改类的任何数据成员，不管其是否具有`const`性质
-
-2.只能访问`const`函数
-
-3.`const`对象只能访问const成员函数
-
-因此在声明一个成员函数时，若该成员函数并不对数据成员进行修改操作，应尽可能将该成员函数声明为`const`成员函数。

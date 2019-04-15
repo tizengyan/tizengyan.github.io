@@ -2,7 +2,7 @@
 layout: post
 title:  "网易2019暑期实习笔试笔记"
 #date:   2019-03-06 12:12:54
-categories: 题
+categories: 笔经
 tags: notes
 excerpt: 笔经
 author: Tizeng

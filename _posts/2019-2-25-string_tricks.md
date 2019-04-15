@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "字符串的常见套路"
+title:  "字符串的常见操作"
 date:   2019-02-25 10:10:54
 categories: 考点
 tags: string
@@ -22,7 +22,7 @@ char s2[10] = "Hello";
 
 这两种写法的区别是，`s1`是一个指针变量（4 bytes），它被存在栈中指向我们初始化的字符串，而此时字符串在我们的代码内存中，因此我们无法通过下标对任何字符做修改，因此这里编译器会建议我们在前面加上`const`，但是可以让这个指针指向别的字符串。`s2`声明为一个数组（10 bytes），和其他类型的数组如整形数组并无区别。
 
-## 2.转换成字符数组
+## 2.字符串的转换
 
 很多函数需要我们输入的是一个`char*`的字符数组而非`string`，这时我们就需要将二者相互转换的方法。
 
@@ -50,6 +50,15 @@ char* p = (char*)str.data();
 const char *s = "Hello, World!";
 string str(s);
 ```
+
+### string转整数
+
+```c++
+string s = "123";
+int a = atoi(s.c_str());
+```
+
+`atoi`接收的是一个字符型数组（C-string），`c_str`可以将`string`转化为`const char *`，注意`c_str`返回的是一个`const char*`而不是`char* p`，因此如果需要将其转化为字符数组要先`new`一个空间出来，再用`strcpy`将其拷贝过去。
 
 ## 3.字符串比较
 
@@ -82,6 +91,25 @@ str1.compare(str2)
 ```
 
 类似的，如果它们完全相同返回`0`，第一个不相同的字符值比第二个大返回`>0`，反之小于零。如果需要，也可以输入参数`pos`和`len`比较子串。
+
+### 用“==”比较的结果
+
+```c++
+char str1[] = "abc";
+char str2[] = "abc";
+const char str3[] = "abc";
+const char str4[] = "abc";
+const char* str5 = "abc";
+const char* str6 = "abc";
+char* str7 = "abc";
+char* str8 = "abc";
+cout << (str1 == str2) << endl;
+cout << (str3 == str4) << endl;
+cout << (str5 == str6) << endl;
+cout << (str7 == str8) << endl;
+```
+
+以上代码会输出 0 0 1 1 ，也就是说指针会指向同一块内存，不论是否为常量。
 
 ## 4.子串（string）
 
@@ -167,22 +195,24 @@ int reverse(int x) {
 }
 ```
 
-## 6.删去字符串中重复的字符
+## 6.有序字符串（数组）去重
 
 ```c++
-string s;
-cin >> s;
-int start = 0;
-for (int i = 1; i < s.size(); i++) {
-    if (s[i] == s[i - 1]) {
-        start++;
+void del_duplicates(string& s) {
+    int count = 0;
+    for (int i = 1; i < s.size(); i++) {
+        if (s[i] == s[i - 1]) {
+            count++;
+        }
+        else {
+            s[i - count] = s[i];
+        }
     }
-    else {
-        s[i - start] = s[i];
-    }
+    s = s.substr(0, s.size() - count);
 }
-cout << s << endl;
 ```
+
+注意这个写法只能给排好序的字符串或者数组去重，也就是说删去的是连续的重复元素，如`abbbc`就会删除中间的两个`b`。思路很简单，用一个`count`记录重复元素的个数（这里字符串的字符和数组的元素表示方法一样），如果发现重复元素则`count++`，
 
 ## 7.旋转字符串（或数组）
 
@@ -221,14 +251,6 @@ void rotate_left(string& s, int k){
     reverse(s, 0, n - 1);
     reverse(s, 0, n - k - 1);
     reverse(s, n - k, n - 1);
-}
-```
-
-可以看到上面的左移函数其实能用右移函数直接表示，因此改写为：
-
-```c++
-void rotate_left(string& s, int k){
-    rotate_right(s, s.size() - k);
 }
 ```
 
@@ -272,5 +294,17 @@ void rotate_recursion(vector<int> &nums, int l, int r, int k){
 }
 ```
 
-## 8.字符串中的最长重复子串
+## 8.字符串的分割
 
+用关键词`strtok`将字符数组按输入的一个或多个字符分割成不同字符，如需分割出超过一个，则后续需输入`NULL`而非数组。
+
+```c++
+string s = "THis is a - str,ing,.";
+char* p = new char[s.length() + 1];
+p = strcpy(p, s.c_str());
+char* pch = strtok(p, " ,");
+while (pch != NULL) {
+    cout << pch << endl;
+    pch = strtok(NULL, " ,");
+}
+```

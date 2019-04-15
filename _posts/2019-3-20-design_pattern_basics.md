@@ -62,6 +62,26 @@ author: Tizeng
 
 ## 常见设计模式介绍
 
+设计模式可以分为三大类，分别是
+
+1. 创建型模式：
+
+    单例模式(Singleton) 构建模式(Builder) 原型模式(Prototype) 抽象工厂模式(Abstract Factory) 
+
+    工厂方法模式(Factory Method)
+
+2. 结构型设计模式：
+
+    装饰者模式(Decorator) 代理模式(Proxy) 组合模式(Composite) 桥连接模式(Bridge) 
+
+    适配器模式(Adapter) 蝇量模式(Flyweight) 外观模式(Facade)
+
+3. 行为型模式：
+
+    策略模式(Strategy) 状态模式(State) 责任链模式(Chain of Responsibility) 解释器模式(Interpreter) 
+
+    命令模式(Command) 观察者模式(Observer) 备忘录模式(Memento) 迭代器模式(Iterator) 模板方法模式(Template Method) 访问者模式(Visitor) 中介者模式(Mediator)
+
 ### 0.MVC模式
 
 ### 1.单例模式
@@ -70,9 +90,79 @@ author: Tizeng
 
 2. 单例类必须自己创建这个唯一的实例
 
-3. 单例类必须给其他对象提供这个唯一的类
+3. 必须提供访问该实例的全局访问点。
 
-我们可以将构造函数设置为私有，
+实现单例有两种写法，懒汉和饿汉。
+
+懒汉版（Lazy initialization）：
+
+```c++
+class FileSystem {
+public:
+    static FileSystem& instance() {
+    // 又称惰性初始化
+    if (instance_ == NULL)
+        instance_ = new FileSystem(); // 两个线程可能先后进入这里实例化两次
+    return *instance_;
+    }
+
+private:
+    FileSystem() {}
+    static FileSystem* instance_;
+};
+```
+
+但是这种写法并不线程安全，可能会出现线程重入，我们可以加锁改进，但是有更优的写法。
+
+饿汉版（Eager Singleton），一开始就初始化：
+
+```c++
+class Singleton {
+private:
+    static Singleton instance;
+    Singleton();
+public:
+    static Singleton& getInstance() {
+        return instance;
+    }
+}
+
+// initialize defaultly
+Singleton Singleton::instance; // 外部初始化
+```
+
+由于在`main`函数之前就就初始化，并没有线程的安全问题，但是这样会有另一个问题，
+
+优雅的懒汉版：
+
+```c++
+class FileSystem{
+public:
+    static FileSystem& instance(){ // 注意这里返回值类型是引用
+    static FileSystem *instance = new FileSystem(); // static保证了不会重复初始化
+    return *instance;
+}
+
+private:
+    FileSystem() {}
+};
+```
+
+这个写法用局部静态变量解决了上面的问题，哪怕是在多线程情况下，C++11标准也保证了本地**静态**变量只会初始化一次，因此，假设你有一个现代C++编译器，这段代码是线程安全的。
+
+它的优势有：
+
+1. 单例只在第一次被请求时初始化，如果没有人用就不会创建实例
+
+2. 它在运行时才实例化，
+
+3. 可继承
+
+
+
+单例模式的缺点：
+
+
 
 ### 2.享元模式
 
@@ -85,3 +175,5 @@ author: Tizeng
 ### 6.状态模式
 
 ### 7.组建模式
+
+参考资料：[游戏设计模式](https://gpp.tkchu.me/singleton.html)及其他

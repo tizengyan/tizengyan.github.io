@@ -340,3 +340,42 @@ int findPath(TreeNode* node, int sum){
     return res;
 }
 ```
+
+## 9.最低公共祖先（[LeetCode 235](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/)）
+
+题目描述：输入一颗二叉搜索树的根节点和两个其他节点，要求输出这两个节点的最低公共祖先。
+
+要注意这里输入的是一颗二叉搜索树，因此要充分利用BST的性质，如果两个节点的值都比根节点小，那么应该继续往左查，反之应该继续往右查，而如果出现一个在左一个在右的情况，则说明找到了最低的公共祖先。
+
+先来看一下循环的写法：
+
+```c++
+TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+    if(root == NULL)
+        return NULL;
+    TreeNode* temp = root;
+    while(temp){
+        if(temp->val > p->val && temp->val > q->val)
+            temp = temp->left;
+        else if(temp->val < p->val && temp->val < q->val)
+            temp = temp->right;
+        else
+            return temp;
+    }
+    return temp;
+}
+```
+
+再补充递归的写法，递归的写法通常更简洁，但是写的时候要费点脑筋（至少对我来说）：
+
+```c++
+TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+    if(root == NULL)
+        return NULL;
+    if(root->val < p->val && root->val < q->val)
+        return lowestCommonAncestor(root->right, p, q);
+    else if(root->val > p->val && root->val > q->val)
+        return lowestCommonAncestor(root->left, p, q);
+    return root;
+}
+```
