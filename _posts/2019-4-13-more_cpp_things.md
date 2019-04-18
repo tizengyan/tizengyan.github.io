@@ -135,3 +135,9 @@ cout << "t = " << t << endl;
 此时`test(5)`会输出15，类型为`int`，而`t`会递增为3，因为是引用捕获。
 
 奇怪的是这里如果把`test`声明时的类型`auto`改为`int`会出现一个很奇怪的错误（no suitable conversion function from lambda ...），谷歌之后感觉这个问题目前超出我的理解范围，先留个坑。
+
+## 2.运算符优先级
+
+C++中的运算符优先级如下图所示，数字越小优先级越高，要特别注意的是结合性不同的运算符会有所不同：
+
+![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)

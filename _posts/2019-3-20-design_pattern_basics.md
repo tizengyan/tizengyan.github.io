@@ -84,6 +84,8 @@ author: Tizeng
 
 ### 0.MVC模式
 
+全称Model-View-Controller（模型-视图-控制器）模式，这种模式用于应用程序的分层开发。
+
 ### 1.单例模式
 
 1. 单例模式的类始终只能生成一个实例
@@ -100,10 +102,10 @@ author: Tizeng
 class FileSystem {
 public:
     static FileSystem& instance() {
-    // 又称惰性初始化
-    if (instance_ == NULL)
-        instance_ = new FileSystem(); // 两个线程可能先后进入这里实例化两次
-    return *instance_;
+        // 又称惰性初始化
+        if (instance_ == NULL)
+            instance_ = new FileSystem(); // 两个线程可能先后进入这里实例化两次
+        return *instance_;
     }
 
 private:
@@ -112,7 +114,34 @@ private:
 };
 ```
 
-但是这种写法并不线程安全，可能会出现线程重入，我们可以加锁改进，但是有更优的写法。
+有一个问题，这种写法可能导致内存泄漏，我们可以用一个内置的嵌套类来专门负责释放空间：
+
+```c++
+class FileSystem {
+public:
+    static FileSystem& instance() {
+        // 又称惰性初始化
+        if (instance_ == NULL)
+            instance_ = new FileSystem(); // 两个线程可能先后进入这里实例化两次
+        return *instance_;
+    }
+
+private:
+    FileSystem() {}
+    static FileSystem* instance_;
+
+    class Deletor {
+    public:
+        ~Deletor() {
+            if(Singleton::instance_ != NULL)
+                delete Singleton::instance_;
+        }
+    };
+    static Deletor deletor; // 静态实例
+};
+```
+
+这样一来，程序结束时会自动调用静态成员`deletor`的析构函数，删除单例类中的唯一实例。但是这种写法并不线程安全，可能会出现线程重入，我们可以加锁改进，但是有更优的写法。
 
 饿汉版（Eager Singleton），一开始就初始化：
 
@@ -131,7 +160,7 @@ public:
 Singleton Singleton::instance; // 外部初始化
 ```
 
-由于在`main`函数之前就就初始化，并没有线程的安全问题，但是这样会有另一个问题，
+由于在`main`函数之前就就初始化，并没有线程的安全问题，但是这样会有另一个问题，编译器在初始化外部静态变量的时候的顺序是未知的，这可能影响类成员的依赖关系，因此这也不是最好的写法。
 
 优雅的懒汉版：
 
@@ -139,9 +168,9 @@ Singleton Singleton::instance; // 外部初始化
 class FileSystem{
 public:
     static FileSystem& instance(){ // 注意这里返回值类型是引用
-    static FileSystem *instance = new FileSystem(); // static保证了不会重复初始化
-    return *instance;
-}
+        static FileSystem *instance = new FileSystem(); // static保证了不会重复初始化
+        return *instance;
+    }
 
 private:
     FileSystem() {}
@@ -150,19 +179,15 @@ private:
 
 这个写法用局部静态变量解决了上面的问题，哪怕是在多线程情况下，C++11标准也保证了本地**静态**变量只会初始化一次，因此，假设你有一个现代C++编译器，这段代码是线程安全的。
 
-它的优势有：
+单例模式的优势有：
 
 1. 单例只在第一次被请求时初始化，如果没有人用就不会创建实例
 
-2. 它在运行时才实例化，
+2. 它在运行时才实例化，也就是惰性初始化
 
 3. 可继承
 
-
-
-单例模式的缺点：
-
-
+单例模式的缺点：惰性初始化会让我们丧失一部分控制权，假如某个音频只能在游戏惰性初始化，而它会因此占用某些内存带来音效的一些延迟甚至画面的掉帧，这些事情如果发生在游戏的高潮部分，就会影响游戏体验。
 
 ### 2.享元模式
 

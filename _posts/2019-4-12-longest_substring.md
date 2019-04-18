@@ -19,7 +19,7 @@ author: Tizeng
 
 ```
 
-## 2.最长公共子串（[LeetCode 718](https://leetcode.com/problems/maximum-length-of-repeated-subarray/)）
+## 2.最长连续公共子串（[LeetCode 718](https://leetcode.com/problems/maximum-length-of-repeated-subarray/)）
 
 题目描述：输入两个数组A和B，输出同时出现在A、B中的最长子序列的长度。
 
@@ -74,4 +74,40 @@ int lengthOfLongestSubstring(string s) {
     }
     return mx;
 }
+```
+
+## 4.最长递增子序列（[LeetCode 673](https://leetcode.com/problems/number-of-longest-increasing-subsequence/)）
+
+题目描述：给定一个长度为N的数组，找出其中最长的单调自增子序列的个数（**不一定连续**，但是顺序不能乱），例如给定一个数组{ 1,3,5,4,7 }，则其存在两个最长子序列{1 3 4 7}和{1 3 5 7}，因此输出2。
+
+这道题考察动态规划，我们先来看一个简单的版本，即只找出输入数组LIS（Longest Increasing Subsequence）的长度。用数组`len[i]`表示以`num[i]`**结尾的**最长子序列长度。注意这里我们填的表不再是问题的最优解，问题的最优解是让我们找出序列中的最长递增序列，但它并不一定以`num[i]`结尾，因此在程序中我们还需要一个`max_len`变量记录最大值。
+
+```c++
+int lenOfLIS(const vector<int>& num){
+    int n = num.size();
+    int max_len = 1;
+    vector<int> len(n, 1);
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < i; j++){
+            if(num[i] > num[j]){
+                if(len[i] < len[j] + 1){
+                    len[i] = len[j] + 1;
+                }
+            }
+        }
+        if (max_len < len[i])
+            max_len = len[i];
+    }
+    return max_len;
+}
+```
+
+扩展：打印这个最长的子序列，如果有多个则打印第一个。
+
+
+
+然后再添加一个表`cnt[i]`用来记录到`num[i]`为止出现的LIS个数。
+
+```c++
+
 ```

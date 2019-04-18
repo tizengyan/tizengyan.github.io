@@ -11,7 +11,7 @@ author: Tizeng
 * content
 {:toc}
 
-## 合并两个排序的链表
+## 1.合并两个排序的链表
 
 这题考察链表的常见操作：合并，有递归和循环两种写法。这个操作可以被用在归并排序链表中，在另一篇总结中也有提到。
 
@@ -65,11 +65,11 @@ ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
 }
 ```
 
-## 反转一个链表
+## 2.反转一个链表
 
 详见另一篇
 
-## 链表的倒数第k个节点
+## 3.链表的倒数第k个节点
 
 题目描述：输入一个链表，输出该链表中倒数第k个结点。
 
@@ -99,3 +99,61 @@ ListNode* FindKthToTail(ListNode* head, unsigned int k) {
 ```
 
 这里要注意的是边界条件的判断，若输入指针为空或`k=0`都要返回`NULL`。
+
+## 4.链表中的循环（[LeetCode 142](https://leetcode.com/problems/linked-list-cycle-ii/)）
+
+题目描述：给一个单向链表，判断其中是否含有循环，如果有，返回循环的起始节点，如果没有返回`NULL`。
+
+这道题是找链表是否循环的升级版，前者只需要一个链表是否有循环，对于这种情况只需要一快一慢两个指针一直往后走，看看它们会不会中途相遇。
+
+那么假设这里链表中有循环，记环前面的路程是`x`，环的周长为`y`，两个节点在距离环起点`r`处相遇，那么当它们遇见后，走过的距离会有如下关系
+
+> 2(x + r) = x + r + n×y
+
+`n`是一个非负整数，表示走得快的指针在和慢指针相遇前已经跑过的圈数，那么化简这个式子可以得到
+
+> x = n×y - r
+
+`x`的值其实就是我们要求的，有了它就可以得到环的起始位置，而有了上面的式子，解法就很明显了，我们等两个指针相遇后，把其中一个指针放回链表头结点，然后再让两个指针以相同的速度（每次前进一个节点）移动，它们最终就会在环的起始点相遇。
+
+```c++
+ListNode *detectCycle(ListNode *head) {
+    ListNode* fast = head;
+    ListNode* slow = head;
+    if(head == NULL)
+        return NULL;
+    if(head->next == NULL || head->next->next == NULL)
+        return NULL;
+    while(fast->next != NULL && fast->next->next != NULL){
+        fast = fast->next->next;
+        slow = slow->next;
+        if(fast == slow)
+            break;
+    }
+    if(fast != slow)
+        return NULL;
+
+    fast = head;
+    while(fast != slow){
+        fast = fast->next;
+        slow = slow->next;
+    }
+    return fast;
+}
+```
+
+这种题目还有一类变形，给定两个链表的头结点，判断它们中的节点有没有相交，如果有则返回交点。
+
+面对这个题目马上可以想到的一种解法就是将其中一个链表的首尾相接，这样问题就回到了找一个链表中的循环，然后用刚才的思路去解，完成后再把链表还原就行了。
+
+如果只需要判断是否有交点，我认为只需要比较两个链表的最后一个节点是否为同一个，这样做的时间复杂度是O(n+m)。
+
+### 与数组的联系
+
+LeetCode上还有一题（[LeetCode 287](https://leetcode.com/problems/find-the-duplicate-number/)），题目描述是有一个大小为 n+1 的数组，其中储存 1~n 的整数，其中至少有一个数字是重复的，现在假设也只有一个重复的数字，但它或许重复了多次，要求找出这个重复的数字。
+
+而这个解法就很骚了，题目要求既不能对原先数组做任何改动（read only），也就是说不能排序，又只能用O(1)的空间，也就是说不能用哈希表储存出现过的数字，看到这好像把所有思路都断了，但其实我们还有另一条线索，就是数组中储存的数字全都是 1~n 的整数，这个条件很容易被忽略。
+
+```c++
+
+```
