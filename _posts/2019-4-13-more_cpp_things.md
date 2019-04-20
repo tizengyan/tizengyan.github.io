@@ -141,3 +141,94 @@ cout << "t = " << t << endl;
 C++中的运算符优先级如下图所示，数字越小优先级越高，要特别注意的是结合性不同的运算符会有所不同：
 
 ![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)
+
+## 3.函数传指针
+
+这个问题看起来很简单但十分容易出错，当函数的参数传入指针时，其实是值传递，但由于指针本身储存的是地址，那么函数体中赋值给形参的值也是**传入变量**的地址，这里需要注意的是指针**本身**也有地址具体看下面的代码：
+
+```c++
+void foo1(int* p) {
+    cout << "in foo1: p = " << p << ", " << "*p = " << *p << endl;
+    int b = 4;
+    p = &b;
+    cout << "in foo1: p = " << p << ", " << "*p = " << *p << endl;
+}
+
+void foo2(int* p) {
+    cout << "in foo2: p = " << p << ", " << "*p = " << *p << endl;
+    int b = 4;
+    *p = b;
+    cout << "in foo2: p = " << p << ", " << "*p = " << *p << endl;
+}
+
+int main() {
+    int* p;
+    int a = 3;
+    p = &a;
+
+    cout << "in main: p = " << p << ", " << "*p = " << *p << endl;
+    foo1(p);
+    cout << "after foo1: p = " << p << ", " << "*p = " << *p << endl;
+    cout << endl;
+    foo2(p);
+    cout << "after foo2: p = " << p << ", " << "*p = " << *p << endl;
+    system("pause");
+    return 0;
+}
+```
+
+输出：
+
+![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)
+
+这里`main`中的指针`p`和两个`foo`中的参数`p`确实指向同一块内存，但它们各自拥有自己的内存，如果在`foo`中对`p`直接赋值，相当于把一个不同的指针指向了另一块内存区域，原有的传入的指针`p`不会有任何改变。若要达到改变的目的，需要改变的是`p`指向地址中储存的信息，因此用解引用符号赋值即可。
+
+如果传入的是指针的指针，就可以直接改变`main`中`p`所指向的内存区域，而不是修改同一块内存保存的值。
+
+```c++
+void goo(int** pp) {
+    cout << "in goo: pp = " << pp << ", *pp = " << *pp << ", **pp = " << **pp << endl;
+    *pp = new int(4);
+    cout << "in goo: pp = " << pp << ", *pp = " << *pp << ", **pp = " << **pp << endl;
+}
+
+int main() {
+    int* p;
+    int a = 3;
+    p = &a;
+
+    cout << "in main: p = " << p << ", *p = " << *p << endl;
+    int** pp = &p;
+    goo(pp);
+    cout << "after goo2: p = " << p << ", *p = " << *p << endl;
+    system("pause");
+    return 0;
+}
+```
+
+## 4.输入流
+
+除了`cin`之外，如果接收的是字符，还可以用`get`和`getline`，尤其是需要接收空格的时候。
+
+```c++
+string str;
+getline(cin, str);
+```
+
+这种写法最简洁，不用指定长度并且会接收空格。其他写法如下：
+
+```c++
+char s1[20];
+char s2[20];
+cin.getline(s1, 20);
+cin.get(s2, 20);
+```
+
+注意圆括号中的数字是要抓取的字符数量，这个数量一定不能超过前面的`s`，否则会越界导致程序崩溃。
+
+## 5.函数返回指针或引用
+
+函数不能返回局部变量的地址，除非为静态局部变量。因为局部变量会在函数结束时被销毁。
+
+## 6.虚函数表
+

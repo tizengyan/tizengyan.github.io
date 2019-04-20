@@ -20,3 +20,9 @@ author: Tizeng
 > front = (rear + n - len) % n
 
 当`(rear + 1) % n == front`时，代表队列已满。
+
+下面放一个[LeetCode 622](https://leetcode.com/problems/design-circular-queue/)题目中实现的循环队列代码：
+
+```c++
+
+```

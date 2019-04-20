@@ -379,3 +379,83 @@ TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
     return root;
 }
 ```
+
+## 10.循环版的遍历
+
+前中后序遍历二叉树用递归写很容易，但是如果要用循环，就稍微复杂点，需要用到栈等数据结构。
+
+以中序遍历为例（[LeetCode 94](https://leetcode.com/problems/binary-tree-inorder-traversal/)），思路为只要当前节点的左孩子存在，就一直 push 进栈，当栈不空时，到了没有左孩子的节点，pop 栈顶元素，将其值放入`res`，并往右走一步（这一步很关键，其实它也反映出中序遍历的核心，即只要有左孩子就优先看左孩子，没有左孩子时再看右孩子）。
+
+下面是实现：
+
+```c++
+vector<int> inorderTraversal(TreeNode* root) {
+    vector<int> res;
+    if(root == NULL)
+        return res;
+    stack<TreeNode*> stk;
+    TreeNode* temp = root;
+    while(!stk.empty() || temp){
+        if(temp){
+            stk.push(temp);
+            temp = temp->left;
+        }
+        else{
+            temp = stk.top();
+            stk.pop();
+            res.push_back(temp->val);
+            temp = temp->right;
+        }
+    }
+    return res;
+}
+```
+
+再来看前序遍历（[LeetCode 144](https://leetcode.com/problems/binary-tree-preorder-traversal/)），乍一看好像把上面的代码中的栈换成队列就行了，其实不然，因为不管何种遍历都要遵循先左后右的原则，如果单纯的换成队列，就会出现左边的节点还没遍历完，就开始遍历右边的了。这里还是用栈，前序遍历的特点是看到一个节点就输出，如果有左右孩子按先左后右输出，以此往复，因此我们在栈不空的情况下，把当前节点 push 进答案，然后先右后左的 push 孩子节点进栈。其实仔细想想并不难。
+
+下面是代码：
+
+```c++
+vector<int> preorderTraversal(TreeNode* root) {
+    vector<int> res;
+    if(root == NULL)
+        return res;
+    stack<TreeNode*> stk;
+    TreeNode* temp = root;
+    stk.push(temp);
+    while(!stk.empty()){
+        temp = stk.top();
+        res.push_back(temp->val);
+        stk.pop();
+        if(temp->right)
+            stk.push(temp->right);
+        if(temp->left)
+            stk.push(temp->left);
+    }
+    return res;
+}
+```
+
+最后是后序遍历（[LeetCode 144](https://leetcode.com/problems/binary-tree-postorder-traversal/)），这道题在LeetCode是hard难度，看起来很难用循环实现，但画个二叉树分析一下，就会发现，如果把后序遍历的结果反过来看，就是对应二叉树的**镜像**的前序遍历，因此我们先**反向**前序遍历二叉树，然后再将结果反转，就得到了后序遍历的结果。
+
+```c++
+vector<int> postorderTraversal(TreeNode* root) {
+    vector<int> res;
+    if(root == NULL)
+        return res;
+    stack<TreeNode*> stk;
+    TreeNode* temp = root;
+    stk.push(temp);
+    while(!stk.empty()){
+        temp = stk.top();
+        res.push_back(temp->val);
+        stk.pop();
+        if(temp->left)
+            stk.push(temp->left);
+        if(temp->right)
+            stk.push(temp->right);
+    }
+    reverse(res.begin(), res.end());
+    return res;
+}
+```

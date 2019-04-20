@@ -152,8 +152,25 @@ ListNode *detectCycle(ListNode *head) {
 
 LeetCode上还有一题（[LeetCode 287](https://leetcode.com/problems/find-the-duplicate-number/)），题目描述是有一个大小为 n+1 的数组，其中储存 1~n 的整数，其中至少有一个数字是重复的，现在假设也只有一个重复的数字，但它或许重复了多次，要求找出这个重复的数字。
 
-而这个解法就很骚了，题目要求既不能对原先数组做任何改动（read only），也就是说不能排序，又只能用O(1)的空间，也就是说不能用哈希表储存出现过的数字，看到这好像把所有思路都断了，但其实我们还有另一条线索，就是数组中储存的数字全都是 1~n 的整数，这个条件很容易被忽略。
+而这个解法就很骚了，题目要求既不能对原先数组做任何改动（read only），也就是说不能排序，又只能用O(1)的空间，也就是说不能用哈希表储存出现过的数字，看到这好像把所有思路都断了，但其实我们还有另一条线索，就是数组中储存的数字全都是 1~n 的整数，这个条件很容易被忽略。如此一来数组中储存的元素就不再单纯是数字，而可以看成下标，也就是说其他元素的地址，因此这其实是一个链表，而且是有一个循环的链表（因为只有一个重复的数字），那么我们的任务就变成了寻找链表的起始节点，和之前的代码类似，但这里要注意`slow`和`fast`不能初始化成同一个节点，否则无法进入第一个循环，也因此后面放回`fast`在起点时要往前一步，放在0而不是`nums[0]`，否则他们俩永远也遇不到。
+
+下面是代码：
 
 ```c++
-
+int findDuplicate(vector<int>& nums) {
+    if(nums.size() == 1)
+        return nums[0];
+    int slow = nums[0];
+    int fast = nums[nums[0]];
+    while(slow != fast){
+        slow = nums[slow];
+        fast = nums[nums[fast]];
+    }
+    fast = 0;
+    while(slow != fast){
+        slow = nums[slow];
+        fast = nums[fast];
+    }
+    return fast;
+}
 ```

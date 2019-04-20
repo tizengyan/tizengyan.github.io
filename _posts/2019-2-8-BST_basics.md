@@ -94,6 +94,7 @@ void inorder(TreeNode* root){
     cout << root->val << endl;
     inorder(root->right);
 }
+
 // 后序遍历
 void postorder(TreeNode* root){
     if(root == NULL)
