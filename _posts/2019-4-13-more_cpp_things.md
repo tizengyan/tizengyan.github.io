@@ -179,7 +179,7 @@ int main() {
 
 输出：
 
-![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)
+![pointer_test1](https://github.com/tizengyan/images/raw/master/pointer_test1.png)
 
 这里`main`中的指针`p`和两个`foo`中的参数`p`确实指向同一块内存，但它们各自拥有自己的内存，如果在`foo`中对`p`直接赋值，相当于把一个不同的指针指向了另一块内存区域，原有的传入的指针`p`不会有任何改变。若要达到改变的目的，需要改变的是`p`指向地址中储存的信息，因此用解引用符号赋值即可。
 
@@ -228,7 +228,4 @@ cin.get(s2, 20);
 
 ## 5.函数返回指针或引用
 
-函数不能返回局部变量的地址，除非为静态局部变量。因为局部变量会在函数结束时被销毁。
-
-## 6.虚函数表
-
+函数不能返回局部变量的地址，除非为静态局部变量，因为局部变量会在函数结束时被销毁。
