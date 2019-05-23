@@ -1,10 +1,10 @@
 ---
 layout: post
-title:  "Unity基础整理（待完成）"
+title:  "Unity使用笔记1"
 #date:   2019-03-06 12:12:54
-categories: 基础知识
+categories: Unity3D
 tags: unity
-excerpt: 整理一些Unity3D的用法
+excerpt: 整理一下Unity3D中的内置方法
 author: Tizeng
 ---
 
@@ -113,4 +113,33 @@ public class InvokeRepeating : MonoBehaviour {
 }
 ```
 
-### coroutine
+### FixedUpdate
+
+在每个锁定帧（fixed frame-rate frame）调用，与物理系统的计算频率相同（默认为0.02s，即每秒钟调用50次），`Update`则完全取决于运行游戏时当前的帧数。当我们需要用`Rigidbody`时通常会用到。
+
+### Awake
+
+当脚本被载入的时候会调用`Awake`，被用来在游戏开始前初始化，整个脚本生命周期只会运行一次，但它在所有对象都被初始化后被调用，并且每个脚本中`Awake`的调用顺序是随机的，因此它可以被用来设置脚本之间的一些关联。
+
+## Quaternion
+
+这个类用来表示空间中的旋转，它替我们处理空间中复杂的有关旋转的运算，常用的函数有： Quaternion.LookRotation, Quaternion.Angle, Quaternion.Euler, Quaternion.Slerp，下面看一些示例
+
+Quaternion.Euler(float x, float y, float z)返回一个绕x轴转x度，绕y轴转y度，绕z轴转z度的rotation
+
+```c#
+// A rotation 30 degrees around the y-axis
+Quaternion rotation = Quaternion.Euler(0, 30, 0);
+```
+
+Quaternion.Slerp(Quaternion a, Quaternion b, float t)在a、b两个rotation中制造大小为t的改动，具体使用后面再说。
+
+## 角度和弧度的转换
+
+弧度转角度：
+
+```c#
+float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg
+```
+
+角度转弧度使用`Mathf.Deg2Rad`，它和`(PI * 2) / 360`等价。
