@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "Unity使用笔记1"
+title:  "Unity使用笔记1——内置函数"
 #date:   2019-03-06 12:12:54
-categories: Unity3D
+categories: 游戏开发
 tags: unity
 excerpt: 整理一下Unity3D中的内置方法
 author: Tizeng
@@ -143,3 +143,11 @@ float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg
 ```
 
 角度转弧度使用`Mathf.Deg2Rad`，它和`(PI * 2) / 360`等价。
+
+## OnDrawGizmos
+
+这是一个Unity定义的接口，如果我们需要为某一个物体（GameObject）周围绘制出某种图像信息方便调试，可以去自己实现这个接口，其中的方法多由`Gizmos`开头。比如第五章实现寻路算法时，地图的方格表现就用了这个接口。
+
+## LayerMask
+
+在Unity编辑器中最多可以使用32种 LayerMask，前八种是内置的 Layer，后面24种由用户自行定义，然后用`true`、`false`来决定是否识别该 Layer，通常被用来在 Raycast时判断是否遇到某一类 Layer 的物体。

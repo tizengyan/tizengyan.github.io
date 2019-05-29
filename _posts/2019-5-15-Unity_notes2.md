@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "Unity使用笔记2"
+title:  "Unity使用笔记2——功能介绍"
 #date:   2019-03-01 8:10:54
-categories: Unity3D
+categories: 游戏开发
 tags: unity
 excerpt: 记录一下unity的使用技巧
 author: Tizeng
@@ -17,11 +17,13 @@ author: Tizeng
 
 ## 2.Animation
 
-Unity中的动画效果非常关键，首先选择需要创建动画的物体，点 Window->Animation 调出动画窗口，然后依次创建需要用到的动画，以备后面使用。记得在创建完毕后点 Inspector 中的 Apply，就会保存改动到模板中，如果后面需要调试，只需先选中目标物体，再在动画窗口选择相应的动画效果播放、调试即可。
+Unity中的动画效果非常关键，首先选择需要创建动画的物体，点 Window->Animation 调出动画窗口，然后依次创建需要用到的动画，以备后面使用。记得在创建完毕后点 Inspector 中的 Apply，就会保存改动到模板中，如果后面需要调试，只需先选中目标物体，再在动画窗口选择相应的动画效果播放、调试即可。在动画窗口创建的动画中的那些像素帧被称为 Motion。
 
-## 3.Animator
+## 3.Animator Controller
 
-类似状态机的设置，将上面制作的动画通过创建的变量设置转移的条件和结构。
+类似状态机的设置，将上面制作的动画通过创建的变量设置转移的条件和结构。我们实际将不同的动画按照状态和条件进行转移（transition）时，是在对 Animator Controller 进行改动，如果碰到需要另一个结构一样，只是要替换动画中的像素图和动画素材时，就可以复制一个之前建好的 Animator Controller，重命名，然后依次替换动画素材。
+
+注意Animator Controller并不是依附在物体上的Animator。
 
 * Any State状态：代表任意的状态，当我们希望某个条件发生时物体不论在何种状态都转移至另一种状态时可以用到，比如角色死亡
 
@@ -30,6 +32,10 @@ Unity中的动画效果非常关键，首先选择需要创建动画的物体，
 一般来讲会在需要构建动画的sprites上创建Animator，最好再额外创建一个Animator Controller并将其拖拽进Animator。在状态机编辑器中，若要使用Any State状态，在创建transition时务必注意取消勾选Can Transition To Self，否则会造成死循环，出现目标动画永远只播放第一帧的bug。
 
 还有要注意的一点是，不同状态间的转换路径transition中的条件，是and关系，也就是如果有多个条件，必须同时满足时才会触发，而如果需要or条件，创建多个transition即可。
+
+## 坐标
+
+Unity中的坐标`transform.position`分为绝对坐标和相对坐标，首先世界有一个坐标系，而对于由父子关系的物体除了最上层的父物体外，子物体的坐标都是相对于上一层的父物体的相对坐标，当我们需要计算物体间的距离时，如果不注意可能会出错。
 
 ## 基础2D脚本
 
@@ -123,6 +129,6 @@ public class CameraFollower : MonoBehaviour{
 `transform.position`代表这个脚本附着的对象的位置，在我们的例子中即是摄像机的位置。
 `LateUpdate`与`Update`一样也会每帧被调用，不同的是它总发生在`Update`之后，也就是说我们在其中改变摄像机位置时，player 一定已经移动在先。核心代码其实只有一行，就是将摄像机的位置设置为当前 player 的位置，但是不能直接设置，因为尽管是2D场景，但是摄像机依然有三维的坐标，因此如果直接将摄像机摆在 player 位置，会导致镜头内拍不到任何东西。`offset`就是为此而存在，注意它只在`start`函数中计算，这时还没有发生任何移动，因此这个差值就是摄像机在同步到 player 位置后需要补上的Z轴坐标，我们需要将其加上。
 
-### (3)Joystick Pack组件
+## Joystick Pack组件
 
-首先创建一个公有的Joystick变量`joystick`，然后将之前移动脚本的`Input.GetAxis("Horizontal")`换成`joystick.Horizontal`即可。
+用于在移动平台上创建虚拟摇杆，首先创建一个公有的Joystick变量`joystick`，然后将之前移动脚本的`Input.GetAxis("Horizontal")`换成`joystick.Horizontal`即可。
