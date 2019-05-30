@@ -60,12 +60,11 @@ public class Node {
 
 最后的一个函数`OnDrawGizmos`既不属于游戏逻辑也不属于寻路逻辑，而是为了将上面的分析和计算结果可视化，便于我们debug。
 
-下面的代码中会有一些在这个步骤不需要用到的变量和方法，暂时忽略它们。
-
 ```c#
+using System.Collections.Generic;
 using UnityEngine;
 
-public class Grid : MonoBehaviour {
+public class MyGrid : MonoBehaviour {
     Node[,] grid; // 网格数组
     public Vector2 gridWorldSize; // 总网格大小
     public float nodeRadius = 0.5f; // 每个节点所占范围
@@ -82,9 +81,13 @@ public class Grid : MonoBehaviour {
         CreateGrid();
     }
 
+    public int maxSize {
+        get { return gridSizeX * gridSizeY; }
+    }
+
     void CreateGrid() {
         grid = new Node[gridSizeX, gridSizeY];
-        Vector2 worldLeftBottom = transform.position - Vector3.right * gridSizeX / 2 - Vector3.up * gridSizeY / 2; // 通过向量坐标计算得到大网格内左下角的绝对坐标
+        Vector2 worldLeftBottom = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.up * gridWorldSize.y / 2; // 通过向量坐标计算得到大网格内左下角的绝对坐标
 
         // 在每个网格内检查是否存在collider
         for(int i = 0; i < gridSizeX; i++) {
@@ -96,15 +99,15 @@ public class Grid : MonoBehaviour {
                 // 检查的范围半径就是我们前面定义的 gridRadius
 
                 //bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
-                bool walkable = !(Physics2D.OverlapCircle(worldPoint, nodeRadius, unwalkableMask));
-                grid[i, j] = new Node(walkable, worldPoint);
+                bool walkable = !(Physics2D.OverlapCircle(worldPoint, nodeRadius, unwalkableMask)); // 注意这里应该用Physics2D
+                grid[i, j] = new Node(walkable, worldPoint, i, j);
             }
         }
     }
 
-    public Node nodeFromWorldPoint(Vector2 worldPosition) {
-        float percentX = (worldPosition.x + gridSizeX / 2) / gridWorldSize.x; // 这里不能用 gridSizeX，因为它是以nodeDiameter为单位的
-        float percentY = (worldPosition.y + gridSizeY / 2) / gridWorldSize.y;
+    public Node nodeFromWorldPoint(Vector3 worldPosition) {
+        float percentX = (worldPosition.x + gridWorldSize.x / 2) / gridWorldSize.x; // 这里不能用 gridSizeX，因为它是以nodeDiameter为单位的
+        float percentY = (worldPosition.y + gridWorldSize.y / 2) / gridWorldSize.y;
         percentX = Mathf.Clamp01(percentX);
         percentY = Mathf.Clamp01(percentY);
 
@@ -113,16 +116,37 @@ public class Grid : MonoBehaviour {
         return grid[x, y];
     }
 
+    public List<Node> getNeighbours(Node node) {
+        List<Node> neighbours = new List<Node>();
+        for(int i = -1; i <= 1; i++) {
+            for(int j = -1; j <= 1; j++) {
+                if (i == 0 && j == 0)
+                    continue; // 忽略自身
+                int checkX = node.gridX + i;
+                int checkY = node.gridY + j;
+                if(checkX >= 0 && checkX < gridSizeX && checkY >= 0 && checkY < gridSizeY) 
+                    neighbours.Add(grid[checkX, checkY]);
+            }
+        }
+        return neighbours;
+    }
+
+    List<Node> path;
+    public void setPath(List<Node> _path) => path = _path; // 寻路时用来储存路径
+
     private void OnDrawGizmos() {
         Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, gridWorldSize.y, 1));
 
         if (grid != null) {
-            Node playerNode = nodeFromWorldPoint(player.position); // 得到主角坐标转换成的节点
+            Node playerNode = nodeFromWorldPoint(player.position);
             foreach (Node node in grid) {
-                Gizmos.color = (node.walkable == true) ? Color.white : Color.red; // 障碍物染成红色，其他染成白色
-                if (node.equals(playerNode))
-                    Gizmos.color = Color.blue; // 如果找到了该节点，把该节点染成蓝色
-                Gizmos.DrawWireCube(node.worldPosition, Vector3.one * (nodeDiameter - .1f)); // 画出立方体，Vector3.one代表三个方向大小都为1的单位向量
+                Gizmos.color = (node.walkable == true) ? Color.white : Color.red;
+                if (node == playerNode) // or equals?
+                    Gizmos.color = Color.blue;
+                else if (path != null && path.Contains(node)) {
+                    Gizmos.color = Color.yellow;
+                }
+                Gizmos.DrawWireCube(node.worldPosition, Vector3.one * (nodeDiameter - .1f));
             }
         }
     }
@@ -135,22 +159,110 @@ public class Grid : MonoBehaviour {
 
 ## A*算法实现
 
-准备工作算是做完了，下面可以实现寻路算法了。寻路算法最常见的有广度优先、深度优先、dijkstra等，在游戏中用的比较多的是A*，还有对其的各种优化方法比如IDA*，我们后面会提，这里先实现A*算法的核心思路。
+准备工作算是做完了，下面可以实现寻路算法了。寻路算法最常见的有广度优先、深度优先、dijkstra等，在游戏中用的比较多的是A*，还有对其的各种优化方法比如IDA*，我们后面会提，这里先实现A*算法的核心思路以及简单的优化。
 
 ### (1)寻路
 
-算法思路为：
+首先我们需要一个标准对每个节点进行评估，A*算法中每个节点定义两个cost，分别是`gCost`和`hCost`，前者是该节点到起点的距离，后者是该节点到目标节点也就是终点的距离，这两者相加就是`fCost`总估值，我们希望这个值越小越好，越小就意味着从起点到终点的消耗越小。
 
-从起点开始，遍历相邻的所有节点，将其
+下面是A*算法思路：
 
-计算节点间的距离
+1. 建立openSet和closedSet两个容器，分别储存需要检查的节点和已经检查过了的节点，并把起始节点放进openSet；
 
-回溯路径
+2. 循环（当openSet不为空时）：
+
+    (1) 取出openSet中`fCost`最小的节点，记为`currentNode`（如果相等，则取`hCost`最小的），并将它放入closedSet；
+
+    (2) 检查`currentNode`是否为目标节点，如果是则路径找到，调用`retracePath`并结束循环，如果不是则继续；
+
+    (3) 对于`currentNode`的每个相邻节点（最多为8个）记为`neighbor`依次进行以下操作：
+
+    判断其是否为障碍物或已经存在于closedSet中，如果是则忽略，如果不是则计算`gCost`值，为`currentNode.gCost`加上`neighbor.gCost`，注意这里可能出现搜索到重复节点的情况，因此得到的`gCost`有可能比之前得到的小，这说明找到了一条比之前更短的路径，因此这里也一并更新了`neighbor`的`gCost`，同时，将它的`parent`更新为`currentNode`。最后如果节点`neighbor`是不存在于openSet中的新节点，还需要将其添加进openSet。
+
+    (4) 返回(1)。
+
+下面是A*算法代码：
+
+```c#
+void findPath(Vector3 startPos, Vector3 targetPos) {
+    Stopwatch sw = new Stopwatch();
+    sw.Start(); // 计时
+
+    Node startNode = grid.nodeFromWorldPoint(startPos);
+    Node targetNode = grid.nodeFromWorldPoint(targetPos);
+
+    //List<Node> openSet = new List<Node>();
+    MyHeap<Node> openSet = new MyHeap<Node>(grid.maxSize); // heap优化
+    HashSet<Node> closedSet = new HashSet<Node>();
+
+    openSet.Add(startNode); // 初始化openSet
+
+    while (openSet.Count > 0) {
+        Node currentNode = openSet.removeFirst();
+
+        // 线性搜索
+        //Node currentNode = openSet[0];
+        //for (int i = 1; i < openSet.Count; i++)
+        //    // 选择较小的FCost的neighbor，如果相等，则选择HCost小的，即离终点近的
+        //    if (openSet[i].fCost < currentNode.fCost || (openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost))
+        //        currentNode = openSet[i];
+        //openSet.Remove(currentNode);
+
+        closedSet.Add(currentNode);
+
+        if (currentNode == targetNode) {
+            sw.Stop();
+            print("Path found: " + sw.ElapsedMilliseconds + "ms");
+
+            retracePath(startNode, targetNode);
+            return;
+        }
+
+        foreach(Node neighbor in grid.getNeighbours(currentNode)) {
+            if(neighbor.walkable == false || closedSet.Contains(neighbor)) 
+                continue;
+            int new_gCost = currentNode.gCost + getDistance(currentNode, neighbor);
+            if (new_gCost < neighbor.gCost || openSet.Contains(neighbor) == false) {
+                neighbor.gCost = new_gCost;
+                neighbor.hCost = getDistance(neighbor, targetNode);
+                neighbor.parent = currentNode;
+                if (openSet.Contains(neighbor) == false)
+                    openSet.Add(neighbor);
+            }
+        }
+    }
+}
+```
+
+计算节点间的距离时，我们有横纵移动和对角移动两种移动方式，假设每个节点间的间隔为1，那么横纵间距就是1，斜对角距离就是根号2，约为1.414，这里为了方便近似成1.4，且都扩大十倍
 
 ![Astar_getDistance](https://github.com/tizengyan/images/raw/master/Astar_getDistance.png)
 
-```c#
+由上图可以看出，总距离是边长较短一边长度大小的斜线距离（图种为2）加上长边长与短边长的差值的直线距离（图种为5-2=3），由此我们可以写出计算节点距离的函数：
 
+```c#
+int getDistance(Node node1, Node node2) {
+    int disX = Mathf.Abs(node1.gridX - node2.gridX);
+    int disY = Mathf.Abs(node1.gridY - node2.gridY);
+    if (disX > disY)
+        return 14 * disY + 10 * (disX - disY);
+    return 14 * disX + 10 * (disY - disX);
+}
+```
+
+寻路完毕后最后一步是回溯路径，这也是为什么我们在节点中需要`parent`成员保存上一个节点，这样在寻路完成后，可以通过目标节点一步一步还原出整个路径，就像一个链表的头指针。
+
+```c#
+void retracePath(Node startNode, Node endNode) {
+    List<Node> path = new List<Node>();
+    Node curNode = endNode;
+    while(curNode != startNode) {
+        path.Add(curNode);
+        curNode = curNode.parent;
+    }
+    path.Reverse();
+    grid.setPath(path);
+}
 ```
 
 下面是实现效果：
@@ -159,7 +271,138 @@ public class Grid : MonoBehaviour {
 
 ![Astar_pathfinding2](https://github.com/tizengyan/images/raw/master/Astar_pathfinding2.png)
 
-### (2)NPC沿路追逐
+### (2)排序优化
+
+上面在寻路时每次都要检查每个节点的`fCost`，复杂度为O(n)，效率很低，而我们每次需要的是节点中`fCost`最小的那个，很自然想到用最小堆来优化，之前写堆排序已经很熟了，思路就不赘述，只是这次用C#实现一个堆而已：
+
+```c#
+using System;
+
+public class MyHeap<T> where T : IHeapItem<T> { // 注意这里是T继承而不是MyHeap继承
+    T[] items;
+    int curSize;
+
+    public MyHeap(int maxSize) {
+        items = new T[maxSize];
+    }
+
+    public bool Contains(T item) {
+        return Equals(items[item.index], item);
+    }
+
+    public int Count {
+        get { return curSize; }
+    }
+
+    public void updateItem(T item) {
+        siftUp(item);
+    }
+
+    public void Add(T item) {
+        item.index = curSize;
+        items[curSize] = item;
+        siftUp(item);
+        curSize++;
+    }
+
+    public T removeFirst() {
+        T first = items[0];
+        curSize--;
+        items[0] = items[curSize];
+        items[0].index = 0;
+        siftDown(items[0]); // !!
+        return first;
+    }
+
+    void siftUp(T item) {
+        int parentIndex = (item.index - 1) / 2;
+        while (true) {
+            T parentItem = items[parentIndex];
+            if (item.CompareTo(parentItem) > 0) { // 优先级更高
+                swap(parentItem, item);
+                parentIndex = (item.index - 1) / 2;
+            }
+            else
+                break;
+        }
+    }
+
+    void siftDown(T item) {
+        int minIndex = item.index;
+        while (true) {
+            int rightIndex = item.index * 2 + 2;
+            int leftIndex = item.index * 2 + 1;
+            if (leftIndex < curSize) {
+                if (rightIndex < curSize) {
+                    if (items[minIndex].CompareTo(items[rightIndex]) < 0)
+                        minIndex = rightIndex;
+                }
+                if (items[minIndex].CompareTo(items[leftIndex]) < 0)
+                    minIndex = leftIndex;
+
+                if (minIndex == item.index) {
+                    break;
+                }
+                else {
+                    swap(items[minIndex], item);
+                }
+            }
+            else
+                break;
+        }
+    }
+
+    void swap(T item1, T item2) {
+        items[item1.index] = item2;
+        items[item2.index] = item1;
+        // 最后不要忘了交换下标信息
+        int temp = item1.index;
+        item1.index = item2.index;
+        item2.index = temp;
+    }
+}
+
+public interface IHeapItem<T> : IComparable<T> {
+    int index { get; set; }
+}
+```
+
+要注意的是，这是一个泛型类，可以支持任何种类的数据，为了方便比较，定义一个储存下标的接口，它继承自`IComparable`，并让类型`T`实现，这样我们就可以方便的调用每个节点在堆中的下标。每次交换位置时也需要注意，不只要交换两个节点在数组中的位置，还需要交换它们的在数组中的**下标信息**。
+
+然后将寻路代码中的openSet设置为我们定义的堆，每次用`removeFirst`进行提取最优节点并维护堆的性质，这样只需要O(logn)复杂度，在地图较大和单位较多的情况下可以显著提升效率。
+
+同时不要忘了在`Node`类中加入下面的代码，实现我们定义的接口：
+
+```c#
+int heapIndex;
+public int index {
+    get {
+        return heapIndex;
+    }
+    set {
+        heapIndex = value;
+    }
+}
+
+public int CompareTo(Node node) {
+    int res = fCost.CompareTo(node.fCost);
+    if (res == 0)
+        res = hCost.CompareTo(node.hCost);
+    return -res; // 我们需要小的消耗，因此越小优先级越高
+}
+```
+
+下面看一下对比，以30x30大小的地图为例，节点半径设为0.05（边长为0.1），找到路径的时间消耗：
+
+![Astar_without_heap.png](https://github.com/tizengyan/images/raw/master/Astar_without_heap.png)
+
+可以看到用堆优化后速度快了十倍左右，效果非常明显：
+
+![Astar_with_heap.png](https://github.com/tizengyan/images/raw/master/Astar_with_heap.png)
+
+### (3)NPC沿路追逐
+
+关于如何在有寻路算法的条件下，让NPC沿着计算出的路径移动并追逐，由于篇幅所限，放在了前一篇博客中。
 
 ## Debug日志
 
@@ -188,4 +431,4 @@ public class Grid : MonoBehaviour {
 
 ### (5)用heap优化寻路算法时Unity死机
 
-判断应该是进入了死循环，首先查看定义的堆中的两个while(true)，
+判断应该是进入了死循环，首先查看定义的堆中的两个while(true)方法，`siftDown`和`siftUp`，设置断点检查，发现并无跳出问题，而在`siftDown`方法中进入一个反复对同一个节点进行操作的死循环，判断是调用的上层函数`removeFirst`出了问题，怀疑没有交换数组中第一个元素和最后一个元素，后来发现是把取出的第一个元素重新放入了`siftDown`函数，而不是传入已经换过来了的末尾元素，更改之后问题解决。就这一个小问题花了三个小时debug，说明写代码时随意变更变量不是个好习惯。
