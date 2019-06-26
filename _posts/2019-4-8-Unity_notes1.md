@@ -151,3 +151,53 @@ float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg
 ## LayerMask
 
 在Unity编辑器中最多可以使用32种 LayerMask，前八种是内置的 Layer，后面24种由用户自行定义，然后用`true`、`false`来决定是否识别该 Layer，通常被用来在 Raycast时判断是否遇到某一类 Layer 的物体。
+
+## Canvas
+
+创建任何UI列表下的对象都会自动生成Canvas并被收纳为其子项，且在子项中越靠下的对象越先被渲染。
+
+## Coroutines
+
+在Unity中，每一帧会处理完所有脚本中的代码，然后载入下一帧，但有时我们可能希望某些脚本中的函数不在同一帧内全部运行完，而希望有所延迟，比如一个脚本判断场上的敌人和玩家间的距离是否小于某个值，如果我们让程序每一帧都运行这个脚本且场上有众多搭载了这个脚本的单位的话，程序运行的效率会变得非常慢，很明显，我们用不着每一帧都去检测这个距离，而只需要将检测的频率提高到某个阈值，就不影响游玩体验，比如每0.1s检测一次，这时就需要用到 coroutines。
+
+默认情况下，一个函数一旦被调用就会一直运行，直到运行完毕或在中途 return，coroutine允许我们在函数运行中途暂停，并在特定延迟之后从上次暂停的状态继续运行，有点像单片机中的中断。具体语法如下：
+
+```c#
+IEnumerator Fade() {
+    for (float f = 1f; f >= 0; f -= 0.1f) {
+        Color c = renderer.material.color;
+        c.a = f;
+        renderer.material.color = c;
+        yield return null;
+    }
+}
+```
+
+这段代码每一帧减小一次物体的透明度。首先函数的返回类型为`IEnumerator`，然后在函数体某处有`yield return`关键词，如果直接接`null`，那么函数中断后，**下一帧**就会接着上次中断的状态运行下一行代码，如果需要中断自定义长的时间，那么只需把返回值从`null`改成`new WaitForSeconds(your delay)`即可。下面的代码运行后就会每隔3秒检查一下颜色的状态：
+
+```c#
+private SpriteRenderer sr;
+public Color color1;
+public Color color2;
+
+void Start () {
+   sr = GetComponent<SpriteRenderer>();
+   StartCoroutine(ChangeColor());
+}
+
+IEnumerator ChangeColor() {
+    while (true) {
+        if (sr.color == color1)
+            sr.color = color2;
+        else
+            sr.color = color1;
+        yield return new WaitForSeconds(3);
+    }
+}
+```
+
+`StartCoroutine`和`StopCoroutine`分别用于启动和终止coroutine。
+
+## Action
+
+这是`System`中的一个用来使用无返回值委托的关键字。

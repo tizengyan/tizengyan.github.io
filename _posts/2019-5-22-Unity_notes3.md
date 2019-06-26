@@ -227,6 +227,20 @@ public class Aim : MonoBehaviour {
 }
 ```
 
+## 血条
+
+首先在主角脚本`PlayerMover`中加入`takeDamage`和`die`两个函数，但要注意最后不能摧毁主角，否则会有bug，然后把血条素材用一个Image加入场景（注意不是Sprite），然后将其属性设置为Filled，就可以在扣血的脚本中随心所欲的从各个方向调整血条的百分比了。
+
+```c#
+public Image healthBar;
+
+...
+healthBar.fillAmount = health / maxHealth;
+...
+```
+
+注意在赋值的时候一定要保证后面的数字是`float`类型。
+
 ## Debug日志
 
 ### (1)分数重启后会累积
