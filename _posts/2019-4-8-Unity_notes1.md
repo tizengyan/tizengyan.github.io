@@ -201,3 +201,11 @@ IEnumerator ChangeColor() {
 ## Action
 
 这是`System`中的一个用来使用无返回值委托的关键字。
+
+## AssetDatabase.AddObjectToAsset
+
+其中一个定义是`public static void AddObjectToAsset(Object objectToAdd, Object assetObject);`，用来在Asset中的元素添加新的物件。
+
+它的描述是：
+
+    Adds objectToAdd to an existing asset identified by assetObject.

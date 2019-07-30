@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Unity使用笔记7——UI界面"
+title:  "Unity使用笔记7——拖拽界面"
 #date:   2019-03-01 8:10:54
 categories: 游戏开发
 tags: unity
