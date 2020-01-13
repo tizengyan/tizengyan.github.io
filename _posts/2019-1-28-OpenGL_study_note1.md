@@ -198,7 +198,7 @@ void drawTriangle(GLFWwindow* window) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // 将顶点数据复制到缓冲内存
 
 	// 解析顶点数据：
-	// 顶点着色器源码将location设置为了0；vec3；参数为浮点型；normalize；步长（这里数据紧密排列）；缓冲起始位置offset
+	// 顶点着色器源码将location设置为了0；vec3；参数为浮点型；normalize；步长（这里数据紧密排列，也可以填0）；缓冲起始位置offset
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0); // 顶点属性起始位置，启用顶点属性（默认为禁用）
 
@@ -269,9 +269,29 @@ glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 ![效果图](https://github.com/tizengyan/images/raw/master/OpenGL_create_rectangle.png)
 
-### 思考题
+### 扩展
 
+OpenGL支持同时生成多个缓冲，调用的方法依然是`glGenBuffers`和`glGenVertexArrays`，这样就可以使用不同的VAO和VBO：
 
+```c++
+unsigned int VBOs[2], VAOs[2];
+glGenVertexArrays(2, VAOs); // we can also generate multiple VAOs or buffers at the same time
+glGenBuffers(2, VBOs);
+```
+
+然后记得在绘制时分开绘制，绑定也要分开绑定：
+
+```c++
+glUseProgram(shaderProgram);
+// draw first triangle using the data from the first VAO
+glBindVertexArray(VAOs[0]);
+glDrawArrays(GL_TRIANGLES, 0, 3);
+// then we draw the second triangle using the data from the second VAO
+glBindVertexArray(VAOs[1]);
+glDrawArrays(GL_TRIANGLES, 0, 3);
+```
+
+如果要使用不同的片段着色器进行着色，就相应的需要两个shader程序，然后将不同的片段着色器绑定在它们身上，并在绘制图像前用`glUseProgram`分别调用它们。
 
 ## Debug日志
 
