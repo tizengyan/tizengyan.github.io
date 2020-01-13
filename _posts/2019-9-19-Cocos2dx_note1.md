@@ -35,12 +35,12 @@ function class(classname, ...)
         local superType = type(super)
         assert(superType == "nil" or superType == "table" or superType == "function",
             string.format("class() - create class \"%s\" with invalid super class type \"%s\"",
-                classname, superType))
+            classname, superType))
 
         if superType == "function" then
             assert(cls.__create == nil,
                 string.format("class() - create class \"%s\" with more than one creating function",
-                    classname));
+                classname));
             -- if super is function, set it to __create
             cls.__create = super
         elseif superType == "table" then
@@ -48,7 +48,7 @@ function class(classname, ...)
                 -- super is native class
                 assert(cls.__create == nil,
                     string.format("class() - create class \"%s\" with more than one creating function or native class",
-                        classname));
+                    classname));
                 cls.__create = function() return super:create() end
             else
                 -- super is pure lua class
@@ -60,8 +60,7 @@ function class(classname, ...)
                 end
             end
         else
-            error(string.format("class() - create class \"%s\" with invalid super type",
-                        classname), 0)
+            error(string.format("class() - create class \"%s\" with invalid super type", classname), 0)
         end
     end
 
@@ -227,8 +226,6 @@ cocos2dx中的sequence应用，富文本载文字加图片，配置上漂距离�
 ## 聊天界面
 
 功能为屏幕右下角可以看到小聊天框，其中包含系统、当前、世界三种类型的消息，点击之后弹出聊天主界面，可以选择在世界和当前两个频道发言，发言方式为点击发送框，输入消息，点击发送按钮，发送后可以在聊天界面看到发出的消息，同时角色头顶也会出现一个短暂存在的消息气泡，显示刚才的消息，方便其他玩家查看。不同的频道中收到的消息不同，之前发出的消息会保存在相应的频道中，呼出聊天界面即可查看。
-
-
 
 ## 背包界面
 
