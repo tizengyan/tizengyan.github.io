@@ -43,15 +43,45 @@ author: Tizeng
 
 ### 四元数（Quaternion）
 
-这里参考了译者的电子书[四元数与三维旋转](https://krasjet.github.io/quaternion/quaternion.pdf)。为了理解四元数先复习一下复数，二维平面的上的旋转可以用复数来描述，我们把任意一复数$c+di$在复平面上看成向量$[c, d]$，将其与另外一个复数$a+bi$相乘，化简后发现结果和矩阵$[a,-b;b,a]$和$[c;d]$相乘的结果$[ac-bd,bc+ad]$是一样的（实部虚部），因此我们可以将复数相乘表示为矩阵相乘，我们再对ab矩阵提取公因式$\sqrt(a^2 + b^2)$，并假设它为1（模为1，不考虑缩放），则其矩阵可以进一步表示为
+这里参考了译者的电子书[四元数与三维旋转](https://krasjet.github.io/quaternion/quaternion.pdf)。为了理解四元数先复习一下复数，二维平面的上的旋转可以用复数来描述，我们把任意一复数$c+di$在复平面上看成向量$[c, d]$，将其与另外一个复数$a+bi$相乘，化简后发现结果和矩阵$[a,-b;b,a]$和$[c;d]$相乘的结果$[ac-bd,bc+ad]$是一样的（实部虚部），因此我们可以将复数相乘表示为矩阵相乘，我们再对ab矩阵提取公因式$\sqrt(a^2 + b^2)$，并假设它为1（不考虑缩放），则其矩阵可以进一步表示为
 $$
 \left[\begin{matrix}
 \cos\theta & -\sin\theta \\
 \sin\theta & \cos\theta \\
-\end{matrix}\right]
+\end{matrix}\right]\tag{1}
 $$
-与$[0, 1]^T$、$[1, 0]^T$相乘可以发现该矩阵让它们在复平面中逆时针旋转了θ度。
+与$[0, 1]^T$、$[1, 0]^T$相乘可以发现该矩阵让它们在复平面中逆时针旋转了θ度，因此我们可以把二维中向量的旋转变换表示为$\vec{v}'=\left[\begin{matrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \\ \end{matrix}\right]\vec{v}$，矩阵（1）就是旋转变换矩阵，如果将其写成复数形式并使用欧拉公式，可以进一步写成$\cos\theta+i\sin\theta=e^{i\theta}$，只要将待旋转的向量写成复数形式，就可以使用它进行旋转。
 
-四元数和复数类似，只是四元数的虚部有三个分量i、j、k，它们满足
-$$i^2=j^2=k^2=ijk=-1$$
-上面这个公式决定了四元数的一切性质，任何一个四元数都可以表示为$q=a+bi+cj+dk$，写成向量形式$q=[a, b, c, d]$，我们经常将实部与虚部分开，用一个三维向量表示虚部，这样可以将$q$表示为标量和向量的有序对的形式$q=[s, \mathbf{v}] (\mathbf{v}=[x,y,z])$。
+三维空间中的旋转可以将待旋转向量$\vec{v}$分解为平行于旋转轴的$\vec{v_1}$和垂直于旋转轴的$\vec{v_2}$两个向量分开处理，而实际上我们只需要计算出$\vec{v_2}$旋转后的$\vec{v_2}'$，加上$\vec{v_1}$就得到了最终的$\vec{v}'$，因为$\vec{v_1}$旋转前后并无变化，因此有$\vec{v}'=\vec{v_1}+\vec{v_2}'$，经过一些向量变换很容易得出一般情况下向量的旋转公式：$\vec{v}'=\cos\theta\vec{v} + (1-\cos\theta)(\vec{u}\cdot\vec{v})\vec{u}+\sin\theta(\vec{u}\times\vec{v})$，其中$\vec{u}$为与旋转轴平行的单位向量，有了这个公式就能将四元数和三维空间的旋转联系在一起。
+
+我们可以类比复数来理解四元数，四元数同样有实部和虚部，只是它的虚部有三个分量$i$、$j$、$k$，它们满足
+$$i^2=j^2=k^2=ijk=-1\tag{2}$$
+上面这个公式决定了四元数的一切性质，其中比较重要的一点是$i$、$j$、$k$相乘时有左乘和右乘之分，即不满足交换律（和叉乘一样看右手定则）。任何一个四元数都可以表示为$q=a+bi+cj+dk$，写成向量形式$q=[a, b, c, d]$，我们经常将实部与虚部分开，用一个三维向量表示虚部，这样可以将$q$表示为标量和向量的有序对的形式$q=[s, \vec{v}],(\vec{v}=[x,y,z])$。我们将两个四元数$q_1=[s, \vec{v}]$和$q_2=[t,\vec{u}]$相乘，其中$\vec{v}=bi+cj+dk$，$\vec{u}=fi+gj+hk$，并按照公式(2)和衍生的等式以及叉乘公式
+（$\vec{v}\times\vec{u}=\begin{vmatrix}
+    i & j & k \\
+    b & c & d \\
+    f & g & h \\
+\end{vmatrix}$）
+化简，可以得到
+$$q_1q_2=[st-\vec{v}\cdot\vec{u},s\vec{u}+t\vec{v}+\vec{v}\times\vec{u}]$$
+这个结果也被叫做格拉斯曼积（Grassmann Product）。接下来将三维空间中任意的向量$\vec{v}$表示为一个实部为0的纯四元数$v=[0,\vec{v}]$，然后按前面的说法将旋转后的向量$\vec{v}'$表示为平行（$\vec{v_1}'$）和垂直（$\vec{v_2}'$）于旋转轴$\vec{u}$的和，其中$\vec{v_2}'=\cos\theta\vec{v_2}+\sin\theta(\vec{u}\times\vec{v_2})$，现在唯一阻碍我们将这个等式化成四元数形式的就是后面的叉乘，而只要计算一下就会发现
+$$uv_2=[0, \vec{u}]\cdot[0,\vec{v_2}]=[-\vec{u}\cdot\vec{v_2},\vec{u}\times\vec{v_2}]=[0,\vec{u}\times\vec{v_2}]=\vec{u}\times\vec{v_2}$$
+因此就可以把$\vec{v_2}'$写成
+$$v_2=\cos\theta v2 + \sin\theta(uv_2) = (\cos\theta + \sin\theta u)v_2\tag{3}$$
+令$q=(\cos\theta+\sin\theta u)$，则$v'=v_1+v_2'=v_1+qv_2$，这样就构造出了一个四元数来描述旋转，显而易见这个四元数是个单位四元数，且$q^2=[\cos2\theta,\sin2\theta u]$，这说明连续乘以一个四元数两次相当于旋转了两倍的$\theta$，很合理，我们会用到这个性质对式子(3)做最后的化简：
+$$\begin{aligned}
+    v' & =v_1+qv_2 \\
+        & =pp^*v_1+ppv_2 \\
+        & =pv_1p^*+pv_2p^* \\
+        & =p(v_1+v_2)p^*=pvp^*
+\end{aligned},p=[\cos\frac{\theta}{2}, \sin\frac{\theta}{2}u]$$
+最后一步除了用$p^2$代替$q$，还利用了$p^*v_1=v_1p^*$和$pv_2=v_2p^*$这两个推论，因为尽管$p$这个四元数仅旋转了$\frac{\theta}{2}$，但是旋转轴的方向与$q$一致，利用$v_1$平行于$u$、$v_2$垂直于$u$这两点，很容易得出上面的结论，由于$p$也是单位四元数，有$q^{-1}=q^*$。至此我们终于得到了用四元数将任意三维空间中的向量进行旋转的公式：任意向量$v$绕单位向量$u$定义的旋转轴旋转$\theta$度之后的$v'=qvq^*=qvq^{-1}$，其中$q=[\cos\frac{\theta}{2},\sin\frac{\theta}{2}u]$。
+
+### 贝塞尔曲线
+
+### 四元数线性插值
+
+Lerp
+Nlerp
+Slerp
+Squad
