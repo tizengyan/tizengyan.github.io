@@ -430,6 +430,7 @@ uniform float per;
 
 void main() {
     //fragColor = texture(texture1, myTexCoord);// * vec4(myColor, 1.0);
+	// 这里texture2坐标取负有上下和左右都颠倒的效果
     fragColor = mix(texture(texture1, myTexCoord), texture(texture2, -myTexCoord), per);
 }
 ```
