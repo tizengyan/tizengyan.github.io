@@ -11,7 +11,7 @@ author: Tizeng
 * content
 {:toc}
 
-这片笔记补充了很多教程中省略的理论知识和公式推导，其中有我个人对欧拉角和四元数的一些理解，如有疏漏或错误欢迎指出。
+这片笔记补充了很多教程中省略的理论知识和公式推导，参考的来源我都会在前面标出，其中有我个人对欧拉角和四元数的一些理解，内容可能比较杂，如有疏漏或错误欢迎指出。
 
 ## 变换（Transformations）
 
@@ -45,19 +45,23 @@ author: Tizeng
 
 ### 四元数（Quaternion）
 
-这里参考了译者的电子书[四元数与三维旋转](https://krasjet.github.io/quaternion/quaternion.pdf)。为了理解四元数先复习一下复数，二维平面的上的旋转可以用复数来描述，我们把任意一复数$c+di$在复平面上看成向量$[c, d]$，将其与另外一个复数$a+bi$相乘，化简后发现结果和矩阵$[a,-b;b,a]$和$[c;d]$相乘的结果$[ac-bd,bc+ad]$是一样的（实部虚部），因此我们可以将复数相乘表示为矩阵相乘，我们再对ab矩阵提取公因式$\sqrt(a^2 + b^2)$，并假设它为1（不考虑缩放），则其矩阵可以进一步表示为
+参考了译者的电子书[四元数与三维旋转](https://krasjet.github.io/quaternion/quaternion.pdf)和《3D数学基础》。为了理解四元数先复习一下复数，二维平面的上的旋转可以用复数来描述，我们把任意一复数$c+di$在复平面上看成向量$[c, d]$，将其与另外一个复数$a+bi$相乘，化简后发现结果和矩阵$[a,-b;b,a]$和$[c;d]$相乘的结果$[ac-bd,bc+ad]$是一样的（实部虚部），因此我们可以将复数相乘表示为矩阵相乘，我们再对ab矩阵提取公因式$\sqrt(a^2 + b^2)$，并假设它为1（不考虑缩放），则其矩阵可以进一步表示为
+
 $$
 \left[\begin{matrix}
 \cos\theta & -\sin\theta \\
 \sin\theta & \cos\theta \\
 \end{matrix}\right]\tag{1}
 $$
+
 与$[0, 1]^T$、$[1, 0]^T$相乘可以发现该矩阵让它们在复平面中逆时针旋转了θ度，因此我们可以把二维中向量的旋转变换表示为$\vec{v}'=\left[\begin{matrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \\ \end{matrix}\right]\vec{v}$，矩阵（1）就是旋转变换矩阵，如果将其写成复数形式并使用欧拉公式，可以进一步写成$\cos\theta+i\sin\theta=e^{i\theta}$，只要将待旋转的向量写成复数形式，就可以使用它进行旋转。
 
-三维空间中的旋转可以将待旋转向量$\vec{v}$分解为平行于旋转轴的$\vec{v_1}$和垂直于旋转轴的$\vec{v_2}$两个向量分开处理，而实际上我们只需要计算出$\vec{v_2}$旋转后的$\vec{v_2}'$，加上$\vec{v_1}$就得到了最终的$\vec{v}'$，因为$\vec{v_1}$旋转前后并无变化，因此有$\vec{v}'=\vec{v_1}+\vec{v_2}'$，经过一些向量变换很容易得出一般情况下向量的旋转公式：$\vec{v}'=\cos\theta\vec{v} + (1-\cos\theta)(\vec{u}\cdot\vec{v})\vec{u}+\sin\theta(\vec{u}\times\vec{v})$，其中$\vec{u}$为与旋转轴平行的单位向量，有了这个公式就能将四元数和三维空间的旋转联系在一起。
+三维空间中的旋转可以将待旋转向量$\vec{v}$分解为平行于旋转轴的$\vec{\vec{v_1}}$和垂直于旋转轴的$\vec{v_2}$两个向量分开处理，而实际上我们只需要计算出$\vec{v_2}$旋转后的$\vec{v_2}'$，加上$\vec{\vec{v_1}}$就得到了最终的$\vec{v}'$，因为$\vec{\vec{v_1}}$旋转前后并无变化，因此有$\vec{v}'=\vec{\vec{v_1}}+\vec{v_2}'$，经过一些向量变换很容易得出一般情况下向量的旋转公式：$\vec{v}'=\cos\theta\vec{v} + (1-\cos\theta)(\vec{u}\cdot\vec{v})\vec{u}+\sin\theta(\vec{u}\times\vec{v})$，其中$\vec{u}$为与旋转轴平行的单位向量，有了这个公式就能将四元数和三维空间的旋转联系在一起。
 
 我们可以类比复数来理解四元数，四元数同样有实部和虚部，只是它的虚部有三个分量$i$、$j$、$k$，它们满足
+
 $$i^2=j^2=k^2=ijk=-1\tag{2}$$
+
 上面这个公式决定了四元数的一切性质，其中比较重要的一点是$i$、$j$、$k$相乘时有左乘和右乘之分，即不满足交换律（和叉乘一样看右手定则）。任何一个四元数都可以表示为$q=a+bi+cj+dk$，写成向量形式$q=[a, b, c, d]$，我们经常将实部与虚部分开，用一个三维向量表示虚部，这样可以将$q$表示为标量和向量的有序对的形式$q=[s, \vec{v}],(\vec{v}=[x,y,z])$。我们将两个四元数$q_1=[s, \vec{v}]$和$q_2=[t,\vec{u}]$相乘，其中$\vec{v}=bi+cj+dk$，$\vec{u}=fi+gj+hk$，并按照公式(2)和衍生的等式以及叉乘公式
 （$\vec{v}\times\vec{u}=\begin{vmatrix}
     i & j & k \\
@@ -65,57 +69,80 @@ $$i^2=j^2=k^2=ijk=-1\tag{2}$$
     f & g & h \\
 \end{vmatrix}$）
 化简，可以得到
+
 $$q_1q_2=[st-\vec{v}\cdot\vec{u},s\vec{u}+t\vec{v}+\vec{v}\times\vec{u}]$$
-这个结果也被叫做格拉斯曼积（Grassmann Product）。接下来将三维空间中任意的向量$\vec{v}$表示为一个实部为0的纯四元数$v=[0,\vec{v}]$，然后按前面的说法将旋转后的向量$\vec{v}'$表示为平行（$\vec{v_1}'$）和垂直（$\vec{v_2}'$）于旋转轴$\vec{u}$的和，其中$\vec{v_2}'=\cos\theta\vec{v_2}+\sin\theta(\vec{u}\times\vec{v_2})$，现在唯一阻碍我们将这个等式化成四元数形式的就是后面的叉乘，而只要计算一下就会发现
+
+这个结果也被叫做格拉斯曼积（Grassmann Product）。接下来将三维空间中任意的向量$\vec{v}$表示为一个实部为0的纯四元数$v=[0,\vec{v}]$，然后按前面的说法将旋转后的向量$\vec{v}'$表示为平行（$\vec{\vec{v_1}}'$）和垂直（$\vec{v_2}'$）于旋转轴$\vec{u}$的和，其中$\vec{v_2}'=\cos\theta\vec{v_2}+\sin\theta(\vec{u}\times\vec{v_2})$，现在唯一阻碍我们将这个等式化成四元数形式的就是后面的叉乘，而只要计算一下就会发现
+
 $$uv_2=[0, \vec{u}]\cdot[0,\vec{v_2}]=[-\vec{u}\cdot\vec{v_2},\vec{u}\times\vec{v_2}]=[0,\vec{u}\times\vec{v_2}]=\vec{u}\times\vec{v_2}$$
+
 因此就可以把$\vec{v_2}'$写成
+
 $$v_2=\cos\theta v2 + \sin\theta(uv_2) = (\cos\theta + \sin\theta u)v_2\tag{3}$$
-令$q=(\cos\theta+\sin\theta u)$，则$v'=v_1+v_2'=v_1+qv_2$，这样就构造出了一个四元数来描述旋转，显而易见这个四元数是个单位四元数，且$q^2=[\cos2\theta,\sin2\theta u]$，这说明连续乘以一个四元数两次相当于旋转了两倍的$\theta$，很合理，我们会用到这个性质对式子(3)做最后的化简：
+
+令$q=(\cos\theta+\sin\theta u)$，则$v'=\vec{v_1}+v_2'=\vec{v_1}+qv_2$，这样就构造出了一个四元数来描述旋转，显而易见这个四元数是个单位四元数，且$q^2=[\cos2\theta,\sin2\theta u]$，这说明连续乘以一个四元数两次相当于旋转了两倍的$\theta$，很合理，我们会用到这个性质对式子(3)做最后的化简：
+
 $$\begin{aligned}
-    v' & =v_1+qv_2 \\
-        & =pp^*v_1+ppv_2 \\
-        & =pv_1p^*+pv_2p^* \\
-        & =p(v_1+v_2)p^*=pvp^*
-\end{aligned},p=[\cos\frac{\theta}{2}, \sin\frac{\theta}{2}u]$$
-最后一步除了用$p^2$代替$q$，还利用了$p^*v_1=v_1p^*$和$pv_2=v_2p^*$这两个推论，因为尽管$p$这个四元数仅旋转了$\frac{\theta}{2}$，但是旋转轴的方向与$q$一致，利用$v_1$平行于$u$、$v_2$垂直于$u$这两点，很容易得出上面的结论，由于$p$也是单位四元数，有$q^{-1}=q^*$。至此我们终于得到了用四元数将任意三维空间中的向量进行旋转的公式：任意向量$v$绕单位向量$u$定义的旋转轴旋转$\theta$度之后的$v'=qvq^*=qvq^{-1}$，其中$q=[\cos\frac{\theta}{2},\sin\frac{\theta}{2}u]$。
+    v' & =\vec{v_1}+qv_2 \\
+        & =pp^*\vec{v_1}+ppv_2 \\
+        & =p\vec{v_1}p^*+pv_2p^* \\
+        & =p(\vec{v_1}+v_2)p^*=pvp^*
+\end{aligned},p=[\cos\frac{\theta}{2}, \sin\frac{\theta}{2}u]
+$$
 
-现在我们可以用四元数来表示三维空间中的旋转，换句话说，每个单位四元数都对应了一个三维旋转。考虑$q$和$-q$两个四元数，它们代表的是两个不同的旋转，但所得到的结果是一样的，只是方向完全相反，这点直接通过四元数旋转公式或三角函数的诱导公式都可以很容易得出，正转$\theta$和反转$2\pi-\theta$从结果来看是等价的。
+最后一步除了用$p^2$代替$q$，还利用了$p^*\vec{v_1}=\vec{v_1}p^*$和$pv_2=v_2p^*$这两个推论，因为尽管$p$这个四元数仅旋转了$\frac{\theta}{2}$，但是旋转轴的方向与$q$一致，利用$\vec{v_1}$平行于$u$、$v_2$垂直于$u$这两点，很容易得出上面的结论，由于$p$也是单位四元数，有$q^{-1}=q^*$。至此我们终于得到了用四元数将任意三维空间中的向量进行旋转的公式：任意向量$v$绕单位向量$u$定义的旋转轴旋转$\theta$度之后的$v'=qvq^*=qvq^{-1}$，其中$q=[\cos\frac{\theta}{2},\sin\frac{\theta}{2}u]$。
 
-### 贝塞尔曲线
+现在我们可以用四元数来表示三维空间中的旋转，换句话说，每个单位四元数都对应了一个三维旋转。有一个特殊情况，考虑$q$和$-q$两个四元数，它们代表的是两个不同的旋转，但所得到的结果是一样的，只是方向完全相反，这点直接通过上面四元数的旋转公式或三角函数的诱导公式都可以很容易得出，正转$\theta$和反转$2\pi-\theta$从结果来看是等价的，这个性质被称为四元数**双倍覆盖**了3D旋转。
 
 ### 四元数插值
 
-Lerp
-Nlerp
-Slerp
-Squad
+插值是一种通过已知的、离散的数据点，在范围内推求新数据点的过程或方法（wiki）。首先来看最简单的线性插值*Lerp*（Linear Interpolation），比如现在要计算两个标量$a_0$到$a_1$之间的插值$a_t$，则$a_t=a_0+t(a_1-a_0)=(1-t)a_0+ta_1$，当$t$在0到1范围内变化时，$a_t$也相应的从$a_0$变化到$a_1$。可以用这个公式对两个单位向量$\vec{v_0}$和$\vec{v_1}$进行插值：$\vec{v_t}=Lerp(\vec{v_0},\vec{v_1},t)=\vec{v_0}+t(\vec{v_1}-\vec{v_0})$，但这样插值的结果不为单位向量，$\vec{v_t}$末端会落在$\vec{v_0}$与$\vec{v_1}$构成的三角形斜边上，为了让结果同样是单位向量，我们将结果进行正规化，得到加入了正规化的线性插值*Nlerp*（Normalized Linear Interpolation）公式：
 
-### 2D旋转
+$$
+\vec{v_t}=Nlerp(\vec{v_0},\vec{v_1},t)=\frac{\vec{v_0}+t(\vec{v_1}-\vec{v_0})}{\|\vec{v_0}+t(\vec{v_1}-\vec{v_0})\|}
+$$
 
-GLSL中直接使用`mat4`表示旋转矩阵来对顶点的位置进行变换：
+这样一来$\vec{v_t}$就落在了$\vec{v_0}$与$\vec{v_1}$形成的圆弧上，换成用四元数表示如下图
 
-```c++
-#version 460 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-layout (location = 2) in vec2 aTexCoord;
+<div align=center>
+![slerp_fig1](https://github.com/tizengyan/images/raw/master/slerp_fig1.png)
+</div>
 
-out vec3 myColor;
-out vec2 myTexCoord;
-uniform mat4 transform;
+$$
+q_t=Nlerp(q_0,q_1,t)=\frac{(1-t)q_0+tq_1}{\|(1-t)q_0+tq_1\|}
+$$
 
-void main() {
-    gl_Position = transform * vec4(aPos, 1.0f);
-    myColor = aColor;
-    myTexCoord = vec2(aTexCoord.x, 1.0f - aTexCoord.y);
-}
-```
+但是这样做会使插值在$t$变化时不是匀速变化的，因为我们是按照两点间的连线来进行插值的，映射到圆弧上之后距离产生了偏差
 
-然后在循环中根据时间来设置旋转的角度，注意这里每次都在循环内部创建变换矩阵`trans`，而不是外部创建好之后重复使用，否则每次旋转的角度会一直叠加导致旋转的速度飞快不受控制。
+<div align=center>
+![slerp_fig2](https://github.com/tizengyan/images/raw/master/slerp_fig2.png)
+</div>
 
-```c++
-glm::mat4 trans;
-trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-trans = glm::rotate(trans, float(glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
-glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-```
+为了解决这个问题，我们需要用角度来进行插值，这种运算被称为球面线性插值*Slerp*（Spherical Linear Interpolation），也是四元数最常用的插值，考虑$v_1$与$v_2$的夹角为$\theta$，$v_t$与$v_0$的夹角为$t\theta$
+
+![slerp_fig](https://github.com/tizengyan/images/raw/master/slerp_fig.png)
+
+我们希望$v_t$是$v_0$和$v_1$的线性组合，即$\vec{v_t}=k_0\vec{v_0}+k_1\vec{v_1}$，利用辅助线或三角关系可以很容易求得$k_0=\frac{\sin{(1-t)\theta}}{\sin\theta}$，$k_1=\frac{\sin{t\theta}}{\sin\theta}$，将这个结论扩展到四元数，得到四元数的Slerp公式：
+
+$$
+q_t=Slerp(q_0,q_1,t)=\frac{\sin{(1-t)\theta}}{\sin\theta}q_0 + \frac{\sin{t\theta}}{\sin\theta}q_1
+$$
+
+这里有两点需要注意，一是前面提到双倍覆盖的问题，$q$和$-q$代表完全一样的方位，只是旋转的方向相反，为了让插值始终沿着最短方向行进，我们利用四元数点乘的结果（这里理解为类似于向量的点乘为余弦值）来判断它们是否为钝角，如果$q_0\cdot q_1<0$，则对其中一个四元数取反；二是如果$q_0$和$q_1$非常接近，$\sin\theta$会非常小以致于接近0，这作为公式中的分母可能会出现问题，解决方法是当两个四元数非常接近时直接使用线性插值，即$k_0=1-t$，$k_1=t$。
+
+*Slerp*在对两个向量或四元数插值的时候没有问题，但如果要同时对多个四元数进行插值，我们只能逐步两两的对它们进行*Slerp*，每次*Slerp*的角速度与进行插值四元数的“夹角”有关，在结束某次插值进入下一轮*Slerp*的时候，角速度可能出现跳变，即在变化点不连续。为了解决这个问题，需要使用球面四边形插值*Squad*（Spherical and quadrangle）。--TODO
+
+以上插图均出自krasjet的电子书教程。
+
+最后总结一下四元数的优缺点，首先是优点：
+
++ *Slerp*能提供平滑插值
++ 能将多个角位移合并为单个角位移
++ 能和矩阵形式快速转换
++ 仅用四个数，而矩阵用了九个数
+
+缺点：
+
+- 比欧拉角多存一个数
+- 输入的数据可能不合法，通过标准化可以解决
+- 难于使用
