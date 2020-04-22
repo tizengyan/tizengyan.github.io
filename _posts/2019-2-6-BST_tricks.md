@@ -436,7 +436,7 @@ vector<int> preorderTraversal(TreeNode* root) {
 }
 ```
 
-最后是后序遍历（[LeetCode 144](https://leetcode.com/problems/binary-tree-postorder-traversal/)），这道题在LeetCode是hard难度，看起来很难用循环实现，但画个二叉树分析一下，就会发现，如果把后序遍历的结果反过来看，就是对应二叉树的**镜像**的前序遍历，因此我们先**反向**前序遍历二叉树，然后再将结果反转，就得到了后序遍历的结果。
+最后是后序遍历（[LeetCode 145](https://leetcode.com/problems/binary-tree-postorder-traversal/)），这道题在LeetCode是hard难度，看起来很难用循环实现，但画个二叉树分析一下，就会发现，如果把后序遍历的结果反过来看，就是对应二叉树的**镜像**的前序遍历，因此我们先**反向**前序遍历二叉树，然后再将结果反转，就得到了后序遍历的结果。
 
 ```c++
 vector<int> postorderTraversal(TreeNode* root) {
