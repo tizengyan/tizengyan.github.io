@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "C++的其他套路（待完成）"
+title:  "《Effective C++》笔记（待完成）"
 #date:   2019-03-01 8:10:54
-categories: 考点
+categories: C++
 tags: STL
 excerpt: 整理一下《Effective C++》的笔记
 author: Tizeng

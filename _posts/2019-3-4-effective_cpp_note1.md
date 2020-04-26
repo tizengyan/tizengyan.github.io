@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "《Effective C++》——面向对象套路（待完成）"
+title:  "《Effective C++》笔记——面向对象套路（待完成）"
 date:   2019-03-04 21:22:54
-categories: 基础知识
+categories: C++
 tags: OOP
 excerpt: C++面向对象的一些技巧
 author: Tizeng

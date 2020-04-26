@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "C++的一些补充"
+title:  "C++基础"
 #date:   2019-03-01 8:10:54
-categories: 基础知识
+categories: C++
 tags: C++
 excerpt: 整理一下C++中可能会被问到的知识点
 author: Tizeng

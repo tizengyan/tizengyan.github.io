@@ -2,7 +2,7 @@
 layout: post
 title:  "C++的各种转型（cast）"
 #date:   2019-03-05 18:20:54
-categories: 基础知识
+categories: C++
 tags: C++
 excerpt: 整理一下C++中的各种转型问题
 author: Tizeng
