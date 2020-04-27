@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++的各种转型（cast）"
+title:  "C++基础——转型"
 #date:   2019-03-05 18:20:54
 categories: C++
 tags: C++
