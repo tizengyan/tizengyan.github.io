@@ -293,10 +293,17 @@ int (*func[5])(int *p);
 
 用来在文件中重新声明在其他文件（模块）中定义的全局变量，或者我们可以直接包含定义了全局变量的头文件。
 
+C++中会区分声明（declaration）和定义（definition），声明是告诉程序一个名字，而定义则创建了一个与之关联的实体（entity），一个变量的声明确定了它的类型和名字，一个变量的定义同时也是它的声明，不同的是定义会给其分配空间，而且可能将变量初始化，使用`extern`关键词可以得到一个声明但是还未定义的变量：
+
+```c++
+extern int i; // declares but does not define i
+int j; // declares and defines j
+```
+
+但如果我们显示的初始化了i，那么不管有没有extern它都是一个定义。变量的定义自始至终都只能有一次，但是声明可以有多次，例如我们需要在多个不同文件中使用同一个变量，那么这个变量必须只能在一个文件中被定义，其他使用了这个变量的文件必须声明，但不定义它，这就是为什么需要使用extern（《C++ Primer 5th》p.45）。
+
 ## 11.运算符优先级
 
 C++中的运算符优先级如下图所示，数字越小优先级越高，要特别注意的是结合性不同的运算符会有所不同：
 
 ![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)
-
-## 12.
