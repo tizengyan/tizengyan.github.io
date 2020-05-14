@@ -13,9 +13,11 @@ author: Tizeng
 
 ## 1.整形的范围
 
-C++中`int`类型为4个字节，也就是32bit，共有`2^32`次方种可能，由于有正负之分，一边一半，加上中间的0，因此它的范围是
+C++中`int`类型为4个字节，也就是32bit，共有$2^{32}$次方种可能，由于有正负之分，一边一半，加上中间的0，因此它的范围是$[-2^{31}, 2^{31} - 1]$。
 
-> [-2^31, 2^31 - 1]
+### double的范围和精度
+
+c++中双精度浮点数至少可以精确到10位有效数字，一般来说是16位有效数字左右，微软官方文档中给出的范围是$1.7E +/- 308(15 digits)$。
 
 ## 2.深拷贝和浅拷贝
 
@@ -140,9 +142,15 @@ enum { NumTurns = 5 };
 int scores[NumTurns];
 ```
 
-## 7. ++*p, *p++和 *++p
+## 7.运算符优先级
 
-这里考察对运算符优先级的理解，前缀`++`的结合性是从右到左，而后缀`++`的结合性是从左到右，而后缀`++`比前缀`++`和`*`**优先级要高**，具体我们看下面的代码：
+C++中的运算符优先级如下图所示，数字越小优先级越高，要特别注意的是结合性不同的运算符会有所不同：
+
+![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)
+
+### ++*p, *p++和 *++p
+
+这里考察对运算符优先级与结合性的理解，前缀`++`的结合性是从右到左，而后缀`++`的结合性是从左到右，而后缀`++`比前缀`++`和`*`**优先级要高**，具体我们看下面的代码：
 
 ```c++
 int arr[] = {10, 20};
@@ -302,8 +310,61 @@ int j; // declares and defines j
 
 但如果我们显示的初始化了i，那么不管有没有extern它都是一个定义。变量的定义自始至终都只能有一次，但是声明可以有多次，例如我们需要在多个不同文件中使用同一个变量，那么这个变量必须只能在一个文件中被定义，其他使用了这个变量的文件必须声明，但不定义它，这就是为什么需要使用extern（《C++ Primer 5th》p.45）。
 
-## 11.运算符优先级
+## 11.union
 
-C++中的运算符优先级如下图所示，数字越小优先级越高，要特别注意的是结合性不同的运算符会有所不同：
+简单来说就是将同一块内存在需要时用于不同的用途，所占空间由最大成员所占用的空间决定，如：
 
-![operator_priority](https://github.com/tizengyan/images/raw/master/operator_priority.png)
+```c++
+union S {
+    uint16_t n1; // 2 bytes
+    uint32_t n2; // 4 bytes
+    char c;      // 1 byte
+};               // 4 bytes
+S s;
+s.n1 = 65;
+cout << s.c << endl; // output A
+cout << sizeof(s) << endl; // output 4
+```
+
+上面的例子中union中最大的成员占4字节，所以最后s会占四字节，声明n1为65后，此时s.n2和s.c没有被初始化，但读取时会读取s.n1设置的值65，因此输出c为字符A。再看一个匿名union的例子：
+
+```c++
+struct Node {
+	union {
+		int num;
+		struct {
+			short x, y;
+		};
+	};
+};
+Node node;
+node.x = 32;
+node.y = 22;
+cout << "num = " << node.num << endl;   // 1441824
+cout << (22 << 16) + 32 << endl;        // 1441824
+```
+
+由于xy成员为short类型，只占两个字节，num为int占四个字节，Node就占四字节，如果我们只初始化x和y，这四个字节中的前两个字节就会保存y，后两个字节保存x，输出num就是直接读取这四个字节中的所有数据的结果了。注意这里Node内部的union和struct都是匿名的，也就是说实例化Node后可以直接拿到union中的成员而不需要经过一道中间名。似乎这是C++11为了兼容C的写法而加入的特性，对于老一些的C++编译器可能并不允许这种写法。
+
+## 12.emplace
+
+C++为容器操作提供的新标准，这个词的意思是妥善放置，可以方便我们给容器加入元素，例如vector的push_back操作时不能直接在括号中用超过一个参数的构造器推入元素，而emplace_back可以：
+
+```c++
+class T {
+public:	
+    int i, j, k;
+    T(int _i, int _j, int _k): i(_i), j(_j), k(_k) {}
+};
+vector<T> v;
+T t(1, 2, 3);
+v.push_back(t);
+v.push_back(1, 2, 3);    // error
+v.emplace_back(1, 2, 3); // ok
+```
+
+除了emplace_back之外，还有emplace_front和emplace，分别对应了push_front和insert。
+
+## 13.make_heap
+
+std::make_heap、std::push_heap、std::pop_heap都接收两个random-access iterator作为begin和end的参数，将这段内存中的数据构建成最大堆，并支持推入新元素或pop最大的元素，pop_heap会将最大元素放到end-1处，但并不会改变容器的大小，需要手动删除。
