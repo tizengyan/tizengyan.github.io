@@ -90,7 +90,7 @@ public string Name {get; private set;}
 
 `this`只能被用在：实例构造函数、实例方法、属性和索引器的实例访问器中，它返回当前实例的引用。
 
-## 结构
+## 结构（struct）
 
 结构与类十分相似，不同的是结构为值类型，且不能被派生。结构生成的实例的成员储存在栈中，因此把一个结构赋值给另一个结构它们的成员会相同，但类则栈中的两个实例指向堆中同一个对象。
 
@@ -135,7 +135,7 @@ class C1{
 
 只要索引器的参数列表不同，类就可以有任意多个索引器。只是返回类型不同是不够的。
 
-## 委托 
+## 委托（delegate）
 
 委托可以被看作是持有一个或多个方法的对象，但委托可以被执行，它会按顺序执行所有持有的方法，不论方法是否重复：
 
@@ -203,3 +203,89 @@ MyDel le3 = x => x + 1; // 省略return
 * Lambda表达式的签名必须与声明的委托一致（参数数量、类型、顺序、修饰符）
 
 ### unity中的委托
+
+## 事件（Event）
+
+事件是发布者/订阅者模式的基础，发布者定义一个或多个事件，如果其他程序或类感兴趣就可以订阅（注册），这样在事件发生的时候发布者就会触发订阅者注册的若干方法，也就是回调。事件包含了一个私有的委托，它对外部来说不可见，我们对事件来添加、删除或调用回调方法，实际上是通过内部的委托来实现，事件声明的时候也需要指定委托类型，注册的处理程序的签名类型必须和该委托类型相同，返回类型也要匹配。事件是类或结构的成员，因此必须声明在类或结构中：
+
+```c#
+delegate void Handler();
+
+class C1 {
+    public event Handler myEvent; // 事件声明在类中
+
+    public void TriggerEvent() {
+        if (myEvent != null)
+            myEvent();
+    }
+}
+
+class C2 {
+    public int Count { get; private set; }
+
+    public C2(C1 c) { // constructor
+        Count = 0;
+        c.myEvent += CountNum;
+    }
+
+    public void CountNum() {
+        Count++;
+    }
+}
+
+class Program {
+    static void main() {
+        C1 c1 = new C1();
+        C2 c2 = new C2(c1);
+        c1.TriggerEvent();
+        Console.WirteLine("Count = {0}", c2.Count);
+    }
+}
+```
+
+事件声明后使用`+=`和`-=`来对其增加或删减方法，然后需要触发时像函数那样调用就行了。EventHandler是C#自带的一个专门处理系统事件的委托，称之为标准事件，它的返回类型是void，有两个参数，第一个是触发事件对象的引用，类型为object，因此可以匹配任何类型的实例，第二个参数类型为EventArgs，用来保存状态信息，也可以传递数据，但是需要声明一个派生自EventArgs的类来保存数据，这样做的好处是统一了委托的签名和返回类型，让所有的事件都可以使用，而不是为不同参数声明多种事件。下面是使用EventHandler的例子：
+
+```C#
+public class MyEventArgs : EventArgs {
+    public int IterationCount { get; set; }; // 迭代次数
+}
+
+class C1 {
+    public event EventHandler<MyEventArgs> myEvent; // 事件此时要声明为泛型
+
+    public void TriggerEvent() {
+        MyEventArgs args = new MyEventArgs();
+        for(int i = 0; i < 100; i++) {
+            if (i % 12 == 0 && myEvent != null) {
+                args.IterationCount = i;
+                myEvent(this, args);
+            }
+        }
+    }
+}
+
+class C2 {
+    public int Count { get; private set; }
+
+    public C2(C1 c) { // constructor
+        Count = 0;
+        c.myEvent += CountNum;
+    }
+
+    public void CountNum(object source, EventArgs e) {
+        Console.WriteLine("{0} iterations in {1}", e.IterationCount, source.ToString());
+        Count++;
+    }
+}
+
+class Program {
+    static void main() {
+        C1 c1 = new C1();
+        C2 c2 = new C2(c1);
+        c1.TriggerEvent();
+        Console.WirteLine("Count = {0}", c2.Count, );
+    }
+}
+```
+
+如果需要自己定义`+=`和`-=`运算符，可以在声明事件时定义访问器add和remove，它们和属性类似，有隐式的value参数，接受实例或静态方法的引用，然后使用`+=`或`-=`时就会执行访问器内的代码，不过这需要我们自己实现存储和移除事件的方法，因为此时事件中已不包含任何内嵌委托对象了，这部分书上没有具体例子（鸽）。
