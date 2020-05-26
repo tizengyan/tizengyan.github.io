@@ -323,3 +323,57 @@ if (p != null) { // 使用前检查p是否为null
 ```
 
 和is运算符类似，as只能用于引用转换和装箱转换，不能用于用户自定义转换或到值类型的转换。
+
+## 枚举器、迭代器
+
+枚举器（enumerator）可以跟踪容器、列表中元素的位置并返回当前项，对有枚举器的类而言，必须要有一个方法来获取枚举器对象。
+
+### IEnumerable接口
+
+这个接口只有一个成员`GetEnumerator`方法，实现该方法让类可以获取枚举器对象，这样的类就称为可枚举类型（enumerable）。
+
+### IEnumerator接口
+
+这个接口包含三个成员：
+
+1. Current：
+    - 返回序列中当前位置项的**只读属性**
+    - 返回类型为object的引用
+2. MoveNext：
+    - 把枚举器移动到序列中的下一个位置的**方法**
+    - 如果位置有效返回true，无效（如超过尾部）则返回false
+    - 原始位置在第一项之前，是无效的
+3. Reset：
+    - 把枚举器的位置重置为原始状态的**方法**
+
+因此要使用枚举器，首先我们要定义一个实现了IEnumerator接口的枚举器类，然后在要使用枚举器的类中实现接口IEnumerable中的GetEnumerator方法，返回之前定义的枚举器类，将类变为可枚举类型后，就可以放入foreach中遍历了，foreach会按我们实现IEnumerator的方式来返回序列中的元素。
+
+### 迭代器
+
+C#中的迭代器通常为迭代器方法，它定义如何拿到序列中的元素（when requested），并记录当前位置，以便下次迭代再发生时正确返回下一个元素。`yield return`语句将方法声明为迭代器方法，方法中可以包含任意数量的`yield return`语句，而且不能和return同时出现在方法中，返回类型为IEnumerator或IEnumerable以及它们的泛型版本：
+
+```c#
+class MyClass {
+    public IEnumerator<string> GetEnumerator() {
+        return Foo();
+    }
+
+    // 迭代器
+    public IEnumerator<string> Foo() {
+        yield return "111";
+        yield return "222";
+        yield return "333";
+    }
+}
+
+class Program {
+    static void Main() {
+        MyClass mc = new MyClass();
+        foreach(string s in mc) {
+            Console.WriteLine(s);
+        }
+    }
+}
+```
+
+上面的代码会依次输出Foo中的三段字符串。如果迭代器返回的是IEnumerable，即返回的是可枚举类型，就要把这个方法直接放进foreach，而非容纳它的类，且这种情况下该类并不需要实现GetEnumerator方法。
