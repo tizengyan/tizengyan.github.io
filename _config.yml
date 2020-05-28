@@ -7,7 +7,7 @@
 
 # Site settings
 title: Tizeng's blog 
-brief-intro: Pure Gamer 
+brief-intro: Ordinary Gamer 
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://tizengyan.github.io" # the base hostname & protocol for your site
 
@@ -17,7 +17,7 @@ permalink: /:year/:month/:day/:title/
 github_username: tizengyan 
 dribbble_username:
 
-description_footer: 刷题笔记
+description_footer: 游戏开发所需笔记
 
 # comments
 # two ways to comment, only choose one, and use your own short name
