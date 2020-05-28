@@ -11,6 +11,18 @@ author: Tizeng
 * content
 {:toc}
 
+<head>
+    <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            inlineMath: [['$','$']]
+            }
+        });
+    </script>
+</head>
+
 这篇笔记补充了很多教程中省略的理论知识和公式推导，参考的来源我都会在前面标出，其中有我个人对欧拉角和四元数的一些理解，内容可能比较杂，如有疏漏或错误欢迎指出。
 
 ## 变换（Transformations）
@@ -54,25 +66,23 @@ $$
 \end{matrix}\right]\tag{1}
 $$
 
-与$[0, 1]^T$、$[1, 0]^T$相乘可以发现该矩阵让它们在复平面中逆时针旋转了θ度，因此我们可以把二维中向量的旋转变换表示为$\vec{v}'=\left[\begin{matrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \\ \end{matrix}\right]\vec{v}$，矩阵（1）就是旋转变换矩阵，如果将其写成复数形式并使用欧拉公式，可以进一步写成$\cos\theta+i\sin\theta=e^{i\theta}$，只要将待旋转的向量写成复数形式，就可以使用它进行旋转。
+与$[0, 1]^T$、$[1, 0]^T$相乘可以发现该矩阵让它们在复平面中逆时针旋转了θ度，因此我们可以把二维中向量的旋转变换表示为
+$\vec{v}'=\left[\begin{smallmatrix}\cos\theta & -\sin\theta \\\\ \sin\theta & \cos\theta \end{smallmatrix}\right]\vec{v}$
+，矩阵（1）就是旋转变换矩阵，如果将其写成复数形式并使用欧拉公式，可以进一步写成$\cos\theta+i\sin\theta=e^{i\theta}$，只要将待旋转的向量写成复数形式，就可以使用它进行旋转。
 
-三维空间中的旋转可以将待旋转向量$\vec{v}$分解为平行于旋转轴的$\vec{\vec{v_1}}$和垂直于旋转轴的$\vec{v_2}$两个向量分开处理，而实际上我们只需要计算出$\vec{v_2}$旋转后的$\vec{v_2}'$，加上$\vec{\vec{v_1}}$就得到了最终的$\vec{v}'$，因为$\vec{\vec{v_1}}$旋转前后并无变化，因此有$\vec{v}'=\vec{\vec{v_1}}+\vec{v_2}'$，经过一些向量变换很容易得出一般情况下向量的旋转公式：$\vec{v}'=\cos\theta\vec{v} + (1-\cos\theta)(\vec{u}\cdot\vec{v})\vec{u}+\sin\theta(\vec{u}\times\vec{v})$，其中$\vec{u}$为与旋转轴平行的单位向量，有了这个公式就能将四元数和三维空间的旋转联系在一起。
+三维空间中的旋转可以将待旋转向量$\vec{v}$分解为平行于旋转轴的$\vec{v_1}$和垂直于旋转轴的$\vec{v_2}$两个向量分开处理，而实际上我们只需要计算出$\vec{v_2}$旋转后的$\vec{v_2}'$，加上$\vec{v_1}$就得到了最终的$\vec{v}'$，因为$\vec{v_1}$旋转前后并无变化，因此有$\vec{v}'=\vec{v_1}+\vec{v_2}'$，经过一些向量变换很容易得出一般情况下向量的旋转公式：$\vec{v}'=\cos\theta\vec{v} + (1-\cos\theta)(\vec{u}\cdot\vec{v})\vec{u}+\sin\theta(\vec{u}\times\vec{v})$，其中$\vec{u}$为与旋转轴平行的单位向量，有了这个公式就能将四元数和三维空间的旋转联系在一起。
 
 我们可以类比复数来理解四元数，四元数同样有实部和虚部，只是它的虚部有三个分量$i$、$j$、$k$，它们满足
 
 $$i^2=j^2=k^2=ijk=-1\tag{2}$$
 
 上面这个公式决定了四元数的一切性质，其中比较重要的一点是$i$、$j$、$k$相乘时有左乘和右乘之分，即不满足交换律（和叉乘一样看右手定则）。任何一个四元数都可以表示为$q=a+bi+cj+dk$，写成向量形式$q=[a, b, c, d]$，我们经常将实部与虚部分开，用一个三维向量表示虚部，这样可以将$q$表示为标量和向量的有序对的形式$q=[s, \vec{v}],(\vec{v}=[x,y,z])$。我们将两个四元数$q_1=[s, \vec{v}]$和$q_2=[t,\vec{u}]$相乘，其中$\vec{v}=bi+cj+dk$，$\vec{u}=fi+gj+hk$，并按照公式(2)和衍生的等式以及叉乘公式
-（$\vec{v}\times\vec{u}=\begin{vmatrix}
-    i & j & k \\
-    b & c & d \\
-    f & g & h \\
-\end{vmatrix}$）
+$\vec{v}\times\vec{u}=\bigr|\begin{smallmatrix} i & j & k \\\\ b & c & d \\\\ f & g & h \\\\ \end{smallmatrix}\bigr|$
 化简，可以得到
 
 $$q_1q_2=[st-\vec{v}\cdot\vec{u},s\vec{u}+t\vec{v}+\vec{v}\times\vec{u}]$$
 
-这个结果也被叫做格拉斯曼积（Grassmann Product）。接下来将三维空间中任意的向量$\vec{v}$表示为一个实部为0的纯四元数$v=[0,\vec{v}]$，然后按前面的说法将旋转后的向量$\vec{v}'$表示为平行（$\vec{\vec{v_1}}'$）和垂直（$\vec{v_2}'$）于旋转轴$\vec{u}$的和，其中$\vec{v_2}'=\cos\theta\vec{v_2}+\sin\theta(\vec{u}\times\vec{v_2})$，现在唯一阻碍我们将这个等式化成四元数形式的就是后面的叉乘，而只要计算一下就会发现
+这个结果也被叫做格拉斯曼积（Grassmann Product）。接下来将三维空间中任意的向量$\vec{v}$表示为一个实部为0的纯四元数$v=[0,\vec{v}]$，然后按前面的说法将旋转后的向量$\vec{v}'$表示为平行（$\vec{v_1}'$）和垂直（$\vec{v_2}'$）于旋转轴$\vec{u}$的和，其中$\vec{v_2}'=\cos\theta\vec{v_2}+\sin\theta(\vec{u}\times\vec{v_2})$，现在唯一阻碍我们将这个等式化成四元数形式的就是后面的叉乘，而只要计算一下就会发现
 
 $$uv_2=[0, \vec{u}]\cdot[0,\vec{v_2}]=[-\vec{u}\cdot\vec{v_2},\vec{u}\times\vec{v_2}]=[0,\vec{u}\times\vec{v_2}]=\vec{u}\times\vec{v_2}$$
 
@@ -90,9 +100,9 @@ $$\begin{aligned}
 \end{aligned},p=[\cos\frac{\theta}{2}, \sin\frac{\theta}{2}u]
 $$
 
-最后一步除了用$p^2$代替$q$，还利用了$p^*\vec{v_1}=\vec{v_1}p^*$和$pv_2=v_2p^*$这两个推论，因为尽管$p$这个四元数仅旋转了$\frac{\theta}{2}$，但是旋转轴的方向与$q$一致，利用$\vec{v_1}$平行于$u$、$v_2$垂直于$u$这两点，很容易得出上面的结论，由于$p$也是单位四元数，有$q^{-1}=q^*$。至此我们终于得到了用四元数将任意三维空间中的向量进行旋转的公式：任意向量$v$绕单位向量$u$定义的旋转轴旋转$\theta$度之后的$v'=qvq^*=qvq^{-1}$，其中$q=[\cos\frac{\theta}{2},\sin\frac{\theta}{2}u]$。
+最后一步除了用$p^2$代替$q$，还利用了$p^{\*}\vec{v_1}=\vec{v_1}p^{\*}$和$pv_2=v_2p^{\*}$这两个推论，因为尽管$p$这个四元数仅旋转了$\frac{\theta}{2}$，但是旋转轴的方向与$q$一致，利用$\vec{v_1}$平行于$u$、$v_2$垂直于$u$这两点，很容易得出上面的结论，由于$p$也是单位四元数，有$q^{-1}=q^\*$。至此我们终于得到了用四元数将任意三维空间中的向量进行旋转的公式：任意向量$v$绕单位向量$u$定义的旋转轴旋转$\theta$度之后的$v'=qvq^\*=qvq^{-1}$，其中$q=[\cos\frac{\theta}{2},\sin\frac{\theta}{2}u]$。
 
-现在我们可以用四元数来表示三维空间中的旋转，换句话说，每个单位四元数都对应了一个三维旋转。有一个特殊情况，考虑$q$和$-q$两个四元数，它们代表的是两个不同的旋转，但所得到的结果是一样的，只是方向完全相反，这点直接通过上面四元数的旋转公式或三角函数的诱导公式都可以很容易得出，正转$\theta$和反转$2\pi-\theta$从结果来看是等价的，这个性质被称为四元数**双倍覆盖**了3D旋转。
+现在我们可以用四元数来表示三维空间中的旋转，换句话说，每个单位四元数都对应了一个三维旋转。有一个特殊情况，考虑$q$和$-q$两个四元数，它们代表的是两个不同的旋转，但所得到的结果是一样的，只是方向完全相反，这点直接通过上面四元数的旋转公式或三角函数的诱导公式都可以很容易得出，正转 $\theta$ 和反转$(2\pi-\theta)$从结果来看是等价的，这个性质被称为四元数**双倍覆盖**了3D旋转。
 
 ### 四元数插值
 
@@ -104,9 +114,7 @@ $$
 
 这样一来$\vec{v_t}$就落在了$\vec{v_0}$与$\vec{v_1}$形成的圆弧上，换成用四元数表示如下图
 
-<div align=center>
 ![slerp_fig1](https://github.com/tizengyan/images/raw/master/slerp_fig1.png)
-</div>
 
 $$
 q_t=Nlerp(q_0,q_1,t)=\frac{(1-t)q_0+tq_1}{\|(1-t)q_0+tq_1\|}
@@ -114,9 +122,7 @@ $$
 
 但是这样做会使插值在$t$变化时不是匀速变化的，因为我们是按照两点间的连线来进行插值的，映射到圆弧上之后距离产生了偏差
 
-<div align=center>
 ![slerp_fig2](https://github.com/tizengyan/images/raw/master/slerp_fig2.png)
-</div>
 
 为了解决这个问题，我们需要用角度来进行插值，这种运算被称为球面线性插值*Slerp*（Spherical Linear Interpolation），也是四元数最常用的插值，考虑$v_1$与$v_2$的夹角为$\theta$，$v_t$与$v_0$的夹角为$t\theta$
 
