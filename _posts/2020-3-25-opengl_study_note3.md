@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "OpenGL学习笔记3"
+title:  "OpenGL学习笔记3——旋转"
 date:   2020-03-25
 categories: 图形学
 tags: OpenGL
