@@ -48,8 +48,20 @@ author: Tizeng
 
 一个完成的蓝图可以被当成一个类，在另一个蓝图中使用，用过设置蓝图中variable的属性，可以决定某些变量是否在被其他蓝图引用时设置，或是外部是否可以直接设置变量。
 
-蓝图分为关卡蓝图（level blueprint）和蓝图类（blueprint class），
+蓝图分为关卡蓝图（level blueprint）和蓝图类（blueprint class），蓝图接口（blueprint interface）
+
+UE4中可以override某些接口，而一些接口在C++中定义为const，因此其中只允许调用const函数，在蓝图中定义自己函数的时候要勾选const，否则会编译不过。
 
 ## UMG（unreal motion graphics UI designer）
+
+unlua相当于一个使用lua对umg进行操作的插件，优点是效率高、代码符合程序员直觉，逻辑复杂时不用担心太乱。缺点是不能打断点调试。
+
+## 反射机制
+
+很多语言如Java、lua都支持反射，
+
+## UI
+
+用unlua实现，在引擎中创建蓝图后，生成unlua模板，编写脚本实现ui逻辑，蓝图中还要实现一个unlua接口，并注册蓝图的路径。
 
 
