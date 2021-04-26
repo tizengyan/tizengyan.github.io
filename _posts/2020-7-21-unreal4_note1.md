@@ -26,6 +26,7 @@ author: Tizeng
 ## 名词
 
 * LOD：细节层次（level of details），类似于mipmap，如果一个物体只占屏幕较小的区域，那么就减少它的顶点和面数来节省开销
+* UMG（unreal motion graphics UI designer）
 * AF：各向异性过滤（anisotropic filtering）
 * mipmap：多级渐远（进）纹理
 * sRGB：标准（standard）红绿蓝色彩空间，一般使用Gamma系数为2.2的色彩空间
@@ -52,20 +53,30 @@ author: Tizeng
 
 UE4中可以override某些接口，而一些接口在C++中定义为const，因此其中只允许调用const函数，在蓝图中定义自己函数的时候要勾选const，否则会编译不过。
 
-## UMG（unreal motion graphics UI designer）
-
 unlua相当于一个使用lua对umg进行操作的插件，优点是效率高、代码符合程序员直觉，逻辑复杂时不用担心太乱。缺点是不能打断点调试。
 
 ## 反射机制
 
-很多语言如Java、lua都支持反射，
+很多语言如Java、lua都支持反射，Unlua就是使用反射实现的，具体还需要时间梳理
 
 ## Unlua
 
-unlua调用引擎
+unlua调用引擎：直接调用有UFUNCTOIN的方法和有UPROPERTY的成员。
 
-引擎调用unlua，在引擎中创建蓝图后，生成unlua模板，编写脚本实现ui逻辑，蓝图中还要实现一个unlua接口，并注册蓝图的路径。
+引擎调用unlua：在引擎中创建蓝图后，生成unlua模板，编写脚本实现ui逻辑，蓝图中还要实现一个unlua接口，并注册蓝图的路径。
 
-## 蒙太奇
+## 蓝图间通信
 
+如果A蓝图可以拿到B蓝图实例，则可以在B蓝图中定义一个EventDispatcher，在需要通知的时候call，然后在A蓝图中bind相应的函数去执行触发的逻辑。
 
+如果互相不好拿实例，那么只能在pc中定义delegate，一个Broadcast，一个绑定监听回调。
+
+## delegate的实现
+
+UE4中的delegate通过各种不同参数的宏实现，
+
+## WorldContext
+
+## GameInstance
+
+## GameMode
