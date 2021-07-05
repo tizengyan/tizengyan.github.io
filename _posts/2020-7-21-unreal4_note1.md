@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "unreal4笔记1——上手"
+title:  "UE4笔记1——上手"
 date:   2020-07-21
 categories: 引擎
 tags: ue4
@@ -57,7 +57,7 @@ unlua相当于一个使用lua对umg进行操作的插件，优点是效率高、
 
 ## 反射机制
 
-很多语言如Java、lua都支持反射，Unlua就是使用反射实现的，具体还需要时间梳理
+很多语言如Java、lua都支持反射，Unlua就是使用反射实现的，具体还需要时间专门梳理
 
 ## Unlua
 
@@ -65,18 +65,62 @@ unlua调用引擎：直接调用有UFUNCTOIN的方法和有UPROPERTY的成员。
 
 引擎调用unlua：在引擎中创建蓝图后，生成unlua模板，编写脚本实现ui逻辑，蓝图中还要实现一个unlua接口，并注册蓝图的路径。
 
+TArray的lua接口定义在LuaLib_Array.cpp中，有常用的Get、Set、Length等接口。类似的，TMap的lua接口在LuaLib_Map.cpp中，常用的有Find、Add、Remove等。
+
+lua层调用c++方法时，只要类型对了不管是指针还是对象传过去都可以，中间应该做了处理。
+
 ## 蓝图间通信
 
 如果A蓝图可以拿到B蓝图实例，则可以在B蓝图中定义一个EventDispatcher，在需要通知的时候call，然后在A蓝图中bind相应的函数去执行触发的逻辑。
 
 如果互相不好拿实例，那么只能在pc中定义delegate，一个Broadcast，一个绑定监听回调。
 
-## delegate的实现
+## Delegate
 
 UE4中的delegate通过各种不同参数的宏实现，
 
 ## WorldContext
 
+游戏中形形色色的Actor和其上的Component存在于Level中的Actors数组中，编辑关卡时的WorldSettings其实是该Level的设置，还有关卡蓝图ALevelScriptActor，它们都是个Actor。World中又储存了Levels数组（一个PersistentLevel和若干SubLevel），同一时间只能存在一个World，当需要切换World时，就要用到WorldContext中保存的信息，即上下文，它是管理多个World的工具。
+
 ## GameInstance
 
-## GameMode
+在整个Gameplay流程中存在的对象，保存了包括WorldContext的所有游戏信息，不会随着Level切换而丢失。在这之上便是引擎UEngine类，它的实例保存为一个全局的变量`GEngine`。
+
+## Subsystems
+
+UE中的Subsystem有Editor、Engine和GameInstance的，比较常用的是最后一个，通过继承`UGameInstanceSubsystem`，我们可以定义自己的Subsystem类，它会在GameInstance创建的时候创建，并自动初始化，当GameInstance关闭（shutdown）的时候自动析构，这样我们就用不着操心它的生命周期，在里面写需要的接口就行了。
+
+## Actor
+
+游戏中的基本物件，继承自UObject，有容纳Component的能力，而且可以实现层级嵌套。另外一个重要的特性是网络复制，可以将各种属性从服务器同步到客户端。
+
+## Component
+
+Component是用来编写功能逻辑的组件，继承自UObject，一般是比较通用的**功能**，如移动、按键输入、摄像机转动等，我们要区分在Component上实现的功能和游戏的业务逻辑，业务逻辑与游戏的玩法和表现关系紧密，而且不同游戏的差别可能很大，这些逻辑应该尽量避免放在Component上。
+
+### MovementComponent
+
+### InputComponent
+
+## Pawn、Character
+
+Pawn派生自Actor，是所有可以被玩家或AI的Controller所控制（possessed）的基类，它主要增加了三个特性：可以被Controller控制、游戏中的视觉表现和物立碰撞、可以移动。这些在引擎提供的DefaultPawn中都有体现，它增加了CollisionComponent、MovementComponent以及StaticMeshComponent。
+
+Character派生自Pawn，可以理解为人形的可以走动的Pawn，它增加了CapsuleComponent、CharacterMovementComponent和SkeletalMeshComponent。
+
+## Controller
+
+Controller是一个没有实体的Actor，用来持有并控制一个Pawn的行为，由于UE设计之初便是为FPS游戏服务，因此Controller一次只能控制一个Pawn，无法控制多个，因此对于RTS等游戏类型来说不太友好。但这样做的好处是Controller可以随时拿到持有的Pawn，Pawn也可以很容易Get到当前的Controller。Controller是可以有位置信息的，这样可以让它在游戏中跟随Pawn移动，方便随时Respawn。
+
+Controller的职责是控制Pawn，放的是关于“指挥”Pawn行动的逻辑，至于Pawn自己具体的一些行为表现，应该放在Pawn里面实现。
+
+Pawn随时可能被销毁，有一些在关卡中需要存续的状态和数据，可以放在Controller中，具体来说就是PlayerState中，它派生自`AInfo`，是一个专门储存玩家数据的类，如玩家id、玩家名，每个玩家都会有一个PlayerState，Controller存了一个它的指针。
+
+## GameMode、GameState
+
+GameplayStatics中有GetGameMode接口，但如果在客户端调是拿不到的，GameMode只存在于服务器中，因此如果关卡是服务器拉玩家进去的就拿不到GameMode。
+
+## 参考
+
+[《InsideUE4》（四）](https://zhuanlan.zhihu.com/p/23321666?refer=insideue4)及后续文章。
