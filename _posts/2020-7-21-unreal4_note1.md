@@ -77,7 +77,13 @@ lua层调用c++方法时，只要类型对了不管是指针还是对象传过�
 
 ## Delegate
 
-UE4中的delegate通过各种不同参数的宏实现，
+UE4中的delegate通过各种不同参数的宏实现
+
+## 网络复制
+
+## DefaultObject
+
+
 
 ## WorldContext
 
@@ -119,7 +125,16 @@ Pawn随时可能被销毁，有一些在关卡中需要存续的状态和数据�
 
 ## GameMode、GameState
 
-GameplayStatics中有GetGameMode接口，但如果在客户端调是拿不到的，GameMode只存在于服务器中，因此如果关卡是服务器拉玩家进去的就拿不到GameMode。
+GameMode是用来控制游戏玩法和基本规则的Actor，GameMode之于World就像PlayerController之于玩家，[官方文档](https://docs.unrealengine.com/4.26/en-US/InteractiveExperiences/Framework/GameMode/)上列出了这么几项：
+* 玩家和观战者数量
+* 玩家如何开始游戏
+* 游戏是否能暂停，暂停如何处理
+* 关卡间的切换、过渡
+
+哪些逻辑应该放在GameMode而不放在Level？前面说了GameMode是控制游戏玩法的，那么它应该关心有关玩法的逻辑，如胜利条件。对于限于每个Level自身表现的逻辑肯定是放在Level中，而对于此玩法（Mode）来说通用的逻辑可以放在GameMode中。
+GameplayStatics中有GetGameMode接口，但在客户端调是拿不到的，GameMode只存在于服务器中，不会同步给任何客户端，因此如果关卡是服务器拉玩家进去的就拿不到GameMode。
+
+如果有一些信息和事件需要同步给所有玩家，就需要通过GameState，它会和GameMode一同创建，包括游戏运行的时间、当前的GameMode、游戏是否已经开始等，和PlayerState类似，它也继承自AInfo。
 
 ## 参考
 
