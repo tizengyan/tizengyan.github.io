@@ -33,6 +33,14 @@ published: false
 
 ## 搬运物（2021.7.16）TODO
 
+要弹提示，发现缺少一个通用的给所有人提示的接口
+提示不应该和Controller相关，这部分考虑移到GameState做##
+
+## 队伍提示重构（2021.7.22）TODO
+
+由于要读表，代码里需要弹提示的地方全都是写死id的特殊处理
+
 ## Bug合集
 
-* 出现挂机之后大厅人物摄像头转移角度，之后操作会crash的问题，看日志是Controller中的PlayerCharacter为空，但此时并未掉线，通过在Controller的UnPossess处打断点发现Player由于掉出地图边界被销毁掉了。
+* 出现挂机之后大厅人物摄像头转移角度，之后操作会crash的问题，看日志是Controller中的PlayerCharacter为空，但此时并未掉线，通过在Controller的UnPossess处打断点发现Player由于掉出地图边界被销毁掉了
+* 之前做的交互UI在Remove合AddItem时的表现出现异常，发现检查角度RemoveItem时高概率出现回正后grid不再出现的情况，排查很久之后发现是因为ListView自己缓存了widget的实例，在RemoveItem之后再次AddItem它可能直接使用了之前的widget而不去重新generate，所以OnEntryGenerated不会走，而widget被我删除之前会播一段消失动画，播完后widget就保留了不可见的状态被重新添加进ListView，造成明明Add了但就是看不见的情况。解决方法是每次添加完后手动拿到widget并检查可见性，如果不可见则播放出现的动画
