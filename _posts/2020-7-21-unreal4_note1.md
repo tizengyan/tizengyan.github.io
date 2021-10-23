@@ -93,9 +93,18 @@ UE4中的delegate通过各种不同参数的宏实现
 
 在整个Gameplay流程中存在的对象，保存了包括WorldContext的所有游戏信息，不会随着Level切换而丢失。在这之上便是引擎UEngine类，它的实例保存为一个全局的变量`GEngine`。
 
+GameInstance在GameEngine初始化时被创建。一般来说从游戏开始到结束只有唯一的一个实例，由于引擎有EditorWorld和PIE，一个进程中可以存在多个GameInstance，这是因为编辑器和实际运行的游戏是不同的，相互独立的。哪些逻辑应该放在GameInstance中？下面是[InsideUE4](https://zhuanlan.zhihu.com/p/24005952)中给出的建议：
+
+* 它可以用来管理World的切换，尽管实际切换的接口定义在Engine中，但何时去调用可以由GameInstance决定
+* 管理Players
+* 管理UI
+* 运行ConsoleCommand
+* 一些第三方逻辑
+* 在Level之外的全局数据
+
 ## Subsystems
 
-UE中的Subsystem有Editor、Engine和GameInstance的，比较常用的是最后一个，通过继承`UGameInstanceSubsystem`，我们可以定义自己的Subsystem类，它会在GameInstance创建的时候创建，并自动初始化，当GameInstance关闭（shutdown）的时候自动析构，这样我们就用不着操心它的生命周期，在里面写需要的接口就行了。
+UE中的Subsystem是引擎中定义好的一套可以自动实例化和释放的类，有EditorSubsystem、EngineSubsystem、GameInstanceSubsystem、WorldSubsystem、LocalPlayerSubsystem五个父类，比较常用的是GameInstance这个，通过继承`UGameInstanceSubsystem`，我们可以定义自己的（游戏相关的）Subsystem类，它会在GameInstance创建的时候创建，并自动初始化，当GameInstance关闭（shutdown）的时候自动析构，这样我们就用不着操心它的生命周期，在里面写需要的接口就行了。
 
 ## Actor
 
@@ -104,6 +113,11 @@ UE中的Subsystem有Editor、Engine和GameInstance的，比较常用的是最后
 ## Component
 
 Component是用来编写功能逻辑的组件，继承自UObject，一般是比较通用的**功能**，如移动、按键输入、摄像机转动等，我们要区分在Component上实现的功能和游戏的业务逻辑，业务逻辑与游戏的玩法和表现关系紧密，而且不同游戏的差别可能很大，这些逻辑应该尽量避免放在Component上。
+
+UActorComponent
+USceneComponent
+UPrimitiveComponent
+UMeshComponent
 
 ### MovementComponent
 
@@ -135,6 +149,10 @@ GameMode是用来控制游戏玩法和基本规则的Actor，GameMode之于World
 GameplayStatics中有GetGameMode接口，但在客户端调是拿不到的，GameMode只存在于服务器中，不会同步给任何客户端，因此如果关卡是服务器拉玩家进去的就拿不到GameMode。
 
 如果有一些信息和事件需要同步给所有玩家，就需要通过GameState，它会和GameMode一同创建，包括游戏运行的时间、当前的GameMode、游戏是否已经开始等，和PlayerState类似，它也继承自AInfo。
+
+## UPlayer
+
+这个Player不是玩家具体控制的那个Player，而是引擎用来管理每个玩家生成的实例。对引擎来说，在游戏中进行外部输入的东西就是玩家，因此在一个多人游戏中，一个客户端上的其他玩家其实就是一个网络连接（UNetConnection同样派生自UPlayer）。它不需要被摆放到Level中，也用不到Actor可以包含Component的能力，所以直接从UObject派生。本地玩家ULocalPlayer是其派生的子类，通过GameInstance中的CreateLocalPlayer方法创建，并生成Controller，然后InitInput。
 
 ## 参考
 
