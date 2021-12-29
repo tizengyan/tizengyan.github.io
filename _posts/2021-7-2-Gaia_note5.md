@@ -82,7 +82,7 @@ lua端实现了Controller的ReceiveAcknowledgePossession方法，服务器上当
 
 在拿SizeToContent的WidgetSize时，可以使用GetDesiredSize方法，但是可能返回0，原因是此Widget刚被添加数据还没拿到，可以在Tick里面去检测。
 
-## 队友行为上漂整理（2021.9.27）
+## 上漂提示系统优化
 
 ## 大厅角色动画适配（2021.10.15）
 要为每个英雄配置不同的展示动画，包括idle、rest和升级时的levelup，idle在一段时间后会切换到rest，然后再回到idle，这些新逻辑需要新建一个动画蓝图（ABP），
@@ -93,11 +93,43 @@ UE本身有一套Localization的逻辑，通过扫描资源和文本文件搜集
 
 这个流程遇到比较大的问题是lua中的文字信息，当初参照zt做多语言的做法，将所有中文信息集中到一个lua文件中，供其他脚本调用，但由于lua处理FText的时候将其转换成了string，就算在C++端定义了使用`NSLOCTEXT`宏的接口，lua这边得到的也是string而非FText，这样会导致在切换Culture的时候由lua设置的Text不会随着切换而变更语言。阅读源码得知，在切换Culture时，TextLocalizationManager会广播一个OnCulureChange的事件，而Text本身并不通过这个事件来刷新，它是在引擎的Tick中检测TextHistory的Revision是否过期，如果是则调用Rebuild去刷新。`GetDisplayString`接口被调用时也会根据Namespace和Key去找到当前的FTextId，通过它拿到Entry，然后检测该Entry中储存的信息是否和要拿取的信息一致（通过比较Hash值是否被改变），如果发现不一致，则调用改变Revision的方法。
 
+### lua脚本适配
+
+## 人物模型实时更换（2021.11.4）
+
+新大厅支持玩家操控角色四处移动，在切换人物后，玩家控制的人物模型也要实时进行切换。这就需要将以前的Pawn销毁掉再重新创建，因为每个人物蓝图身上的配置不一样，如果只是更换Mesh会有隐患。
+
+## 军械库与局内商店（2021.12）
+
+两个普通的需要页签分类点击各种小格道具，然后刷新信息的UI，细节就不写了，都大同小异，只记录遇到的问题。
+
+商店由于是在战斗中用交互物打开，且每个交互物（商店）刷出的物品不同，这就需要场景中的Actor保存玩家刷出的道具数据，这块服务器写了个component，其中的商店数据用一个Replicated成员变量同步下来，如果ds上有改动会触发OnRep通知客户端刷新
+
+涉及到颜色变化的地方，应该把颜色信息放在蓝图的变量里面，而不应该写在代码配置里，因为目前只有程序能修改脚本。
+
+模型更换野指针
+
+## 主动技能（2021.12.17）
+
+使用下面的代码监听TagAdded时，出现过一段时间就监听不到了的情况：
+
+```lua
+local TagAddedRemovedIns = UAsyncTaskGameplayTagAddedRemoved.ListenForGameplayTagAddedOrRemoved(ASC, TagContainer)
+if TagAddedRemovedIns then 
+    TagAddedRemovedIns.OnTagAdded:Add(self, self.OnTagAdded)
+end
+```
+
+这里用了local变量储存的AsyncTask会在一段时间后被gc，连带delegate当然就不会被通知了。
+改成存`self`变量后，发现问依然存在，AsyncTask依然被gc了，尝试在WBP中先声明变量，然后lua直接存进去
+
 ## Bug合集
 
 * 出现挂机之后大厅人物摄像头转移角度，之后操作会crash的问题，看日志是Controller中的PlayerCharacter为空，但此时并未掉线，通过在Controller的UnPossess处打断点发现Player由于掉出地图边界被销毁掉了
 * 之前做的交互UI在Remove合AddItem时的表现出现异常，发现检查角度RemoveItem时高概率出现回正后grid不再出现的情况，排查很久之后发现是因为ListView自己缓存了widget的实例，在RemoveItem之后再次AddItem它可能直接使用了之前的widget而不去重新generate，所以OnEntryGenerated不会走，而widget被我删除之前会播一段消失动画，播完后widget就保留了不可见的状态被重新添加进ListView，造成明明Add了但就是看不见的情况。解决方法是每次添加完后手动拿到widget并检查可见性，如果不可见则播放出现的动画
 * OnActorBeginOverlap用AddDynamic了之后不触发，发现是NPC基类没有勾选GenerateOverlapEvents选项，要触发Overlap事件必须两个接触的Actor都勾选了这个选项
 * 正确注册Npc死亡事件后却一直没有触发，排查后发现每次第一次运行引擎会警告绑定失败，原因是不是UFUNCTION，但函数明明就定义为UFUNCTION，而且经排查只有这一个函数会出问题，后面再定义一个一模一样的函数绑定就会正常触发，最后注意到该函数声明前面有一个宏，将那个宏移开，之前的函数也能正常触发了，这里只能猜测是自己定义的宏和UFUNCTION宏之间出了点冲突
-* C++定义的delegate广播的ustruct到了lua那边突然拿不到里面的成员，而且只在手机包出现，编辑器没有问题
-* 
+* C++定义的delegate广播的ustruct到了lua那边突然拿不到里面的成员，而且只在手机包出现，编辑器没有问题。调试发现是delegate传过来的struct类型莫名其妙变了，应该是unlua插件的问题，已经提交issue给他们，然后换了种实现回避掉这种情况
+* 技能图标在某张地图上会出现收不到初始化通知，反复实验发现在手机上频繁出现，编辑器平均5次才出现1次，原因是ui初始化有时会慢于技能初始化通知，只要加一个主动获取的逻辑即可，注意由于ui只能拿到客户端数据，也就是要等它Replicated下来，而这个流程仍然可能晚于ui初始化，因此一定要在该数据的OnRep函数处去通知，而不是服务器初始化逻辑的地方
+* UObject类自己实现的Replicated方法，在客户端经常无法收到绑定的OnRep函数调用。后面终于发现是ReplicateSubobjects实现写的有问题，没有查子object的更新导致
+* 结算ui莫名被gc然后再被创建，然后Construct调用lua函数崩溃。发现是之前在ui脚本Destruct中增加的Destroy导致，由触发器创建的ui都会有这个问题，不能加Destroy。
