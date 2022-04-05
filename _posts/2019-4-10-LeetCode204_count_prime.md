@@ -2,7 +2,7 @@
 layout: post
 title:  "LeetCode 204——Count Prime"
 #date:   2019-02-26 17:11:54
-categories: 题
+categories: 算法题
 tags: math
 excerpt: 计算质数的数量
 author: Tizeng

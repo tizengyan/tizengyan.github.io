@@ -459,3 +459,37 @@ vector<int> postorderTraversal(TreeNode* root) {
     return res;
 }
 ```
+
+(2022.4.2)然而上面的方法只是用特殊手段得到了后序遍历的答案，其本身并没有在做后序遍历，这是有区别的。由于后序遍历要求最后访问根节点，在push值进答案时要确保右边子树为空，或者已经遍历过，如果不是，则需要重新将此节点压入栈，并开始对右子树进行操作。
+
+```c++
+vector<int> postorderTraversal(TreeNode* root)
+{
+    vector<int> res;
+    stack<TreeNode*> stk;
+    TreeNode* temp = root;
+    TreeNode* prev = nullptr;
+    while (temp != nullptr || !stk.empty())
+    {
+        while (temp)
+        {
+            stk.push(temp);
+            temp = temp->left;
+        }
+        temp = stk.top();
+        stk.pop();
+        if (temp->right == nullptr || temp->right == prev)
+        {
+            res.push_back(temp->val);
+            prev = temp;
+            temp = nullptr;
+        }
+        else
+        {
+            stk.push(temp);
+            temp = temp->right;
+        }
+    }
+    return res;
+}
+```

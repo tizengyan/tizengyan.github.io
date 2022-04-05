@@ -2,7 +2,7 @@
 layout: post
 title:  "剑指offer：连续子数组的最大和"
 date:   2019-02-06 15:32:54
-categories: 题
+categories: 算法题
 tags: 动态规划 递归
 excerpt: 题目描述：输入一个整形数组，有正有负，数组中一个或连续的多个整数组成一个子数组，求所有子数组中和的最大的值。要求时间复杂度为O(n)。
 author: Tizeng
