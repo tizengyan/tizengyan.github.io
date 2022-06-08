@@ -73,7 +73,7 @@ lua层调用c++方法时，只要类型对了不管是指针还是对象传过�
 
 如果A蓝图可以拿到B蓝图实例，则可以在B蓝图中定义一个EventDispatcher，在需要通知的时候call，然后在A蓝图中bind相应的函数去执行触发的逻辑。
 
-如果互相不好拿实例，那么只能在pc中定义delegate，一个Broadcast，一个绑定监听回调。
+如果互相不好拿实例，那么只能在双方都能拿到的地方（如Controller）中定义delegate，一个Broadcast，一个绑定监听回调。
 
 ## Delegate
 
@@ -81,7 +81,7 @@ UE4中的delegate通过各种不同参数的宏实现
 
 ## 网络复制
 
-## DefaultObject
+## ClassDefaultObject
 
 
 
@@ -110,6 +110,25 @@ UE中的Subsystem是引擎中定义好的一套可以自动实例化和释放的
 
 游戏中的基本物件，继承自UObject，有容纳Component的能力，而且可以实现层级嵌套。另外一个重要的特性是网络复制，可以将各种属性从服务器同步到客户端。
 
+SpawnActor后会走以下几个步骤：
+
+    UWorld::SpawnActor |-> PostSpawnInitialize -> FinishSpawning -> 
+                           PostActorConstruction |-> PreInitializeComponents, InitializeComponents, PostInitializeComponents
+                                                 |-> DispatchBeginPlay -> BeginPlay
+                       |-> OnActorSpawned.Broadcast
+
+进行PIE时，Editor中的Actor会先复制到新World中，然后依次调用：
+
+    UEditorEngine::CreatePIEGameInstance -> UGameInstance::StartPlayInEditorGameInstance -> 
+    UWorld::InitializeActorsForPlay -> ULevel::RouteActorInitialize |-> AActor::PreInitializeComponents
+                                                                    |-> AActor::InitializeComponents
+                                                                    |-> AActor::PostInitializeComponents
+                                                                    |-> AActor::DispatchBeginPlay -> BeginPlay
+
+## WorldSettings
+
+
+
 ## Component
 
 Component是用来编写功能逻辑的组件，继承自UObject，一般是比较通用的**功能**，如移动、按键输入、摄像机转动等，我们要区分在Component上实现的功能和游戏的业务逻辑，业务逻辑与游戏的玩法和表现关系紧密，而且不同游戏的差别可能很大，这些逻辑应该尽量避免放在Component上。
@@ -135,9 +154,11 @@ Controller是一个没有实体的Actor，用来持有并控制一个Pawn的行�
 
 Controller的职责是控制Pawn，放的是关于“指挥”Pawn行动的逻辑，至于Pawn自己具体的一些行为表现，应该放在Pawn里面实现。
 
-Pawn随时可能被销毁，有一些在关卡中需要存续的状态和数据，可以放在Controller中，具体来说就是PlayerState中，它派生自`AInfo`，是一个专门储存玩家数据的类，如玩家id、玩家名，每个玩家都会有一个PlayerState，Controller存了一个它的指针。
+Pawn随时可能被销毁，有一些在关卡中需要存续的状态和数据，可以放在Controller中，或PlayerState中，它派生自`AInfo`，是一个专门储存玩家数据的类，如玩家id、玩家名，每个玩家都会有一个PlayerState，Controller存了一个它的指针。
 
 ## GameMode
+
+在GameInstance初始化时，会去创建GameMode。地图切换后，会在`UEngine::LoadMap`时去设置当前WorldSettings中配置的GameMode，同样使用了GameInstance的接口去创建。
 
 GameMode是用来控制游戏玩法和基本规则的Actor，GameMode之于World就像PlayerController之于玩家，[官方文档](https://docs.unrealengine.com/4.26/en-US/InteractiveExperiences/Framework/GameMode/)上列出了这么几项：
 * 玩家和观战者数量
@@ -151,15 +172,25 @@ GameplayStatics中有GetGameMode接口，但在客户端调是拿不到的，Gam
 客户端在连接ds时，会经过如下几个阶段：
 
 1. 向ds请求，得到许可后开始加载地图（c->s: Hello, s->c: Challenge, c->s: Login）
-2. 地图加载完毕告知ds，ds调用`AGameModeBase::PreLogin`（s->c: Welcome）
-3. ds调用`AGameModeBase::Login`创建PlayerController并同步到客户端（c->s: Join）
-4. ds调用`AGameModeBase::PostLogin`，此时ds可以安全的调用PlayerController上的RPC函数
+2. ds调用`AGameModeBase::PreLogin`，如果没有问题就通知客户端（s->c: Welcome）
+3. 客户端设置`bSuccessfullyConnected=true`，在`UEngine::LoadMap`中加载地图（同时发送NetSpeed），加载完毕后告知ds（c->s: Join）
+4. ds调用`AGameModeBase::Login`创建PlayerController并同步到客户端
+5. 最后ds调用`AGameModeBase::PostLogin`，此时ds可以安全的调用PlayerController上的RPC函数，且在`HandleStartingNewPlayer`中初始化Player
 
-服务器在`UWorld::NotifyControlMessage`中处理客户端的消息，客户端在`UPendingNetGame::NotifyControlMessage`等方法中处理。
+服务器在`UWorld::NotifyControlMessage`中处理客户端的消息，客户端则在`UPendingNetGame::NotifyControlMessage`等方法中处理。
+
+`AGameMode`中处理了多人射击游戏相关的内容，它维护了一个`MatchState`用来表示当前比赛的状态，当其进入InProgress状态时，说明游戏正式开始，`HandleMatchHasStarted`会被调用，通知所有Actor调用BeginPlay。
 
 ## GameSate
 
 如果有一些信息和事件需要同步给所有玩家，就需要通过GameState，它会和GameMode一同创建，包括游戏运行的时间、当前的GameMode、游戏是否已经开始等，和PlayerState类似，它也继承自AInfo。
+
+它创建的流程如下：
+
+1. 编辑器的Play按钮被点击，引擎调用`PlayInEditor`
+2. 引擎创建PIEGameInstance，GameInstance通知World调用`InitializeActorsForPlay`
+3. World通知GameMode调用`InitGame`，再遍历Levels数组，让每个Level初始化其持有的Actors数组的Component
+4. GameMode在调用`PreInitializeComponents`时生成GameState实例并初始化
 
 ## UPlayer
 
