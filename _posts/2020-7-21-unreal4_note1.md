@@ -112,10 +112,10 @@ UE中的Subsystem是引擎中定义好的一套可以自动实例化和释放的
 
 SpawnActor后会走以下几个步骤：
 
-    UWorld::SpawnActor |-> PostSpawnInitialize -> FinishSpawning -> 
+    UWorld::SpawnActor |-> AActor::PostSpawnInitialize -> FinishSpawning -> 
                            PostActorConstruction |-> PreInitializeComponents, InitializeComponents, PostInitializeComponents
                                                  |-> DispatchBeginPlay -> BeginPlay
-                       |-> OnActorSpawned.Broadcast
+                       |-> (UWorld)OnActorSpawned.Broadcast
 
 进行PIE时，Editor中的Actor会先复制到新World中，然后依次调用：
 
