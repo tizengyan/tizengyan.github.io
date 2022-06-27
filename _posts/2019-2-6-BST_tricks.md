@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "二叉搜索树的一些常见套路"
+title:  "二叉树的一些常见套路"
 date:   2019-02-06 20:34:54
 categories: 数据结构
 tags: BST 递归
@@ -380,6 +380,27 @@ TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
 }
 ```
 
+### 二叉树的最低公共祖先（[LeetCode 236](https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-tree/)）
+
+如果让我们找一颗普通二叉树的LCA，情况就要复杂一些，但是基本思路还是一致，即遍历二叉树，当两个节点分别出现在了某个节点的左右子树中，则当前节点即为LCA：
+
+```c++
+TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q)
+{
+    if (root == nullptr || root == p || root == q)
+        return root;
+    TreeNode* left = lowestCommonAncestor(root->left, p, q);
+    TreeNode* right = lowestCommonAncestor(root->right, p, q);
+    if (left == nullptr)
+        return right;
+    if (right == nullptr)
+        return left;
+    return root;
+}
+```
+
+还有一种迭代写法，先用dfs记录每个节点的父节点，然后对两个目标节点分别回溯，相交之处就是最低公共祖先了。
+
 ## 10.循环版的遍历
 
 前中后序遍历二叉树用递归写很容易，但是如果要用循环，就稍微复杂点，需要用到栈等数据结构。
@@ -388,23 +409,28 @@ TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
 
 下面是实现：
 
+（2022.5.14更新）
 ```c++
-vector<int> inorderTraversal(TreeNode* root) {
+vector<int> inorderTraversal(TreeNode* root)
+{
+    if (root == nullptr)
+        return {};
     vector<int> res;
-    if(root == NULL)
-        return res;
-    stack<TreeNode*> stk;
+    vector<TreeNode*> stk;
     TreeNode* temp = root;
-    while(!stk.empty() || temp){
-        if(temp){
-            stk.push(temp);
+    while (stk.size() != 0 || temp)
+    {
+        if (temp)
+        {
+            stk.push_back(temp);
             temp = temp->left;
         }
-        else{
-            temp = stk.top();
-            stk.pop();
-            res.push_back(temp->val);
-            temp = temp->right;
+        else
+        {
+            TreeNode* top = stk[stk.size() - 1];
+            stk.pop_back();
+            res.push_back(top->val);
+            temp = top->right;
         }
     }
     return res;

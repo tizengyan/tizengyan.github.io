@@ -39,10 +39,6 @@ Dir& tempDir(){
 
 如此一来我们得到的就是指向static对象的引用，而不是对象自身了。
 
-## （条款12）
-
-## （条款30）
-
 ## 为多态基类声明virtual析构函数（条款07）
 
 想象一个简单的情况，当一个子类对象经由一个基类指针被删除，比如：
@@ -81,3 +77,53 @@ int main(){
 
 ## 区分接口继承和实现继承（条款34）
 
+## 不要在构造和析构函数中调用virtual函数
+
+原因是在构造中，还没有构建出子类（如果有），此时对象还被看作当前类（基类），如果调用virtual函数，不会如我们所想去调用子类中的版本，derived对象在该类的构造调用前不会成为derived类型的对象。同理，在derived类的析构函数调用时，该类中的成员变量便变为不确定值，此时执行该类的函数既不安全，也不会往下去找更子类的重载。
+
+## RAII(Resource Acquisition is Initialization)
+
+说的是将资源的管理与对象的生命周期绑定，对象在构造时完成资源的分配（或在得到资源后立刻用其初始化对象），在析构时完成释放，只要对象能正确被析构，如超出作用域，就可以避免内存泄漏。
+
+除了在构造和析构中做资源的获取和释放外，还可以使用一个`shared_ptr`的本地变量，并为其准备一个deleter，这样在该类对象被删除时那个`shared_ptr`成员会被一并删除并调用deleter，如此一来就无需专门声明析构函数去处理了。
+
+而如果RAII对象面临复制，我们有两种选择：
+
+1. 将拷贝构造和赋值声明为private并且不提供定义，或继承一个这样做的基类，以禁止复制（条款6）
+2. 对对象内的指针成员使用shared_ptr和deleter来在引用计数归零时执行deleter
+
+RAII对象在被复制时需进行深拷贝，以一并复制其管理的资源。
+
+（条款15）就像shared_ptr提供get方法让我们访问其持有的原始指针，我们在设计RAII类时也需要提供其管理的原始资源（raw resources）的方法，或定义隐式/显示转换的方法，其中显示转换较为安全，而隐式转换使用起来比较自然但是有误用的风险。
+
+（条款17）在对智能指针使用new赋值时，应使用独立语句，防止因异常导致的资源泄露。
+
+## 模板特化
+
+（条款25）我们不能重载std函数，也不能添加额外的功能或偏特化（partially specialize），但是可以全特化（total template specialization）其中的函数，如`swap`（事实上C++只允许对类模板偏特化）：
+
+```c++
+class Widget
+{
+public:
+    void swap(Widget& Other)
+    {
+        using std::swap; // 令std::swap可用
+        swap(pImpl, Other.pImpl); // 同类型对象可以访问私有成员
+    }
+private:
+    WidgetImp* pImpl; // pointer to implementation手法
+};
+namespace std
+{
+    template<>
+    void swap<Widget>(Widget& a, Widget& b)
+    {
+        a.swap(b);
+    }
+}
+```
+
+当调用`swap`时传入了Widget类型，就会使用上面我们特化的版本，调用成员函数执行真正的`swap`。`using std::swap`表明我们希望尝试使用全特化的`std::swap`。
+
+而如果Widget是一个模板类，那么就会面临偏特化或重载std命名空间中的函数，这都是不被允许的，为此我们可以将其放入一个新的命名空间中。这种方法对普通类和模板类都适用，但如果我们面对的是普通类，还是要选择特化`std::swap`，因为这可以兼容直接调用`std:swap`的代码。

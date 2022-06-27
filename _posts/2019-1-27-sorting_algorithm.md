@@ -225,6 +225,8 @@ void mergeSort(vector<int>& v, int left, int right){
 }
 ```
 
+归并排序时一定要注意`Merge`函数中处理的mid位置和`MergeSort`中是一致的，不然会出现进入`Merge`后范围内的数并不是有序的。
+
 ### 1.用归并排序将一个链表排序（[LeetCode 148](https://leetcode.com/problems/sort-list/)）
 
 思路其实和排序数组一样，只是相应的操作会转变成链表的方式。比如我们无法通过下标来找一个链表的中间节点，需要设置两个遍历速度不同的指针，一个指针`slow`每次走一步，另一个指针`fast`一次走两步，这样在`fast`走到链表底端时，`slow`会刚好处于链表正中间。（注意，这里题目要求使用O(1)的空间复杂度）
