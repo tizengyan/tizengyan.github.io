@@ -169,18 +169,6 @@ GameMode是用来控制游戏玩法和基本规则的Actor，GameMode之于World
 哪些逻辑应该放在GameMode而不放在Level？前面说了GameMode是控制游戏玩法的，那么它应该关心有关玩法的逻辑，如胜利条件。对于限于每个Level自身表现的逻辑肯定是放在Level中，而对于此玩法（Mode）来说通用的逻辑可以放在GameMode中。
 GameplayStatics中有GetGameMode接口，但在客户端调是拿不到的，GameMode只存在于服务器中，不会同步给任何客户端，因此如果关卡是服务器拉玩家进去的就拿不到GameMode。
 
-客户端在连接ds时，会经过如下几个阶段：
-
-1. 向ds请求，得到许可后开始加载地图（c->s: Hello, s->c: Challenge, c->s: Login）
-2. ds调用`AGameModeBase::PreLogin`，如果没有问题就通知客户端（s->c: Welcome）
-3. 客户端设置`bSuccessfullyConnected=true`，在`UEngine::LoadMap`中加载地图（同时发送NetSpeed），加载完毕后告知ds（c->s: Join）
-4. ds调用`AGameModeBase::Login`创建PlayerController并同步到客户端
-5. 最后ds调用`AGameModeBase::PostLogin`，此时ds可以安全的调用PlayerController上的RPC函数，且在`HandleStartingNewPlayer`中初始化Player
-
-服务器在`UWorld::NotifyControlMessage`中处理客户端的消息，客户端则在`UPendingNetGame::NotifyControlMessage`等方法中处理。
-
-`AGameMode`中处理了多人射击游戏相关的内容，它维护了一个`MatchState`用来表示当前比赛的状态，当其进入InProgress状态时，说明游戏正式开始，`HandleMatchHasStarted`会被调用，通知所有Actor调用BeginPlay。
-
 ## GameSate
 
 如果有一些信息和事件需要同步给所有玩家，就需要通过GameState，它会和GameMode一同创建，包括游戏运行的时间、当前的GameMode、游戏是否已经开始等，和PlayerState类似，它也继承自AInfo。
