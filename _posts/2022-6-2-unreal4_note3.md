@@ -4,7 +4,7 @@ title: "UE4笔记3——网络同步"
 date: 2022-06-30
 categories: 引擎
 tags: ue4
-excerpt: 尝试在ue4中开发技能编辑器
+excerpt: 总结一下网络同步相关的问题
 author: Tizeng
 ---
 
@@ -47,7 +47,7 @@ author: Tizeng
 
 客户端自己创建的Actor，Role是Authority，RemoteRole会是None，就算将其Owner设置为有连接的PlayerController，它对服务器来说也没有意义。
 
-### 时序问题
+### 时序问题（2022.7.5）
 
 参考[知乎文章](https://zhuanlan.zhihu.com/p/34721113)。
 如果RPC函数和Actor同步在服务器上同时发生，理论上RPC会较快到达客户端，但是由于网络延迟等问题这是不确定的，比如服务器上修改了Actor上的某个变量，我们期望客户端上收到同步后调用绑定的OnRep函数，如果此时有RPC函数也修改了客户端上的值，那么这个函数可能就不会被调用了。

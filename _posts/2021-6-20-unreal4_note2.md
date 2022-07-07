@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "UE4笔记2——一些源码"
-date:   2021-07-21
+title: "UE4笔记2——一些源码"
+date: 2021-07-21
 categories: 引擎
 tags: ue4
 excerpt: 做功能的时候读到一些引擎里面的接口实现，记录学习一下
@@ -11,17 +11,30 @@ author: Tizeng
 * content
 {:toc}
 
+
 ## InvSprt
 
 ## FindLookAtRotation
 
 ## ProjectWorldToScreen
 
-## TSoftObjectPtr
+## 资源加载（2022.7.6）
 
-UE管理UObject的一种方式，内部储存了对象的“Path”，可以在需要的时候去动态的加载资源，实现跨地图保存，具体还需要看资料整理。
+- FSoftObjectPath：包含资源路径AssetPathName
+- FSoftObjectPtr：继承自`TPersistentObjectPtr<FSoftObjectPath>`，包含资源路径，还缓存了UObject的弱引用（WeakPtr）
+- TSoftObjectPtr：对`FSoftObjectPtr`做了一层封装，提供模板类型参数和蓝图接口，对应的是蓝图中**青色**的SoftObjectReference类型，针对目录下的资源文件，可以用`AsyncLoadAsset`方法拿到**蓝色**的ObjectReference
+- TSoftClassPtr：同样对`FSoftObjectPtr`做了一层封装，但是让其看起来像一个TSubclassOf，对应的是蓝图中**粉色**的SoftClassReference类型，针对具体的蓝图类型，可以用`AsyncLoadClassAsset`拿到**紫色**的ObjectClassReference
+
+- LoadObject：根据路径加载UObject资源
+- LoadClass：一般用来加载蓝图资源并返回UClass，内部调用了`LoadObject<UClass>`
 
 需要在编辑器中通过吸取拿到场景中的Actor时，使用`TSoftObjectPtr<AActor>`而非`AActor*`，如果要在lua中使用，则需要在C++层使用Get之后再传给lua。
+
+按[文档](https://docs.unrealengine.com/5.0/en-US/asynchronous-asset-loading/)中的描述，UProperty硬指针与`TSoftObjectPtr`主要的区别在于硬指针索引到的东西会立刻被加载，有时这并不是我们所希望的。
+
+### 异步加载
+
+使用`FStreamableManager`中的接口`RequestAsyncLoad`，它可以传入一个delegate，在加载完成之后通知我们。
 
 ## MoveTemp
 
