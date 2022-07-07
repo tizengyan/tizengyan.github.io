@@ -18,12 +18,18 @@ author: Tizeng
 
 ## ProjectWorldToScreen
 
-## 资源加载（2022.7.6）
+## 内存管理（2022.7.7）
 
-- FSoftObjectPath：包含资源路径AssetPathName
-- FSoftObjectPtr：继承自`TPersistentObjectPtr<FSoftObjectPath>`，包含资源路径，还缓存了UObject的弱引用（WeakPtr）
-- TSoftObjectPtr：对`FSoftObjectPtr`做了一层封装，提供模板类型参数和蓝图接口，对应的是蓝图中**青色**的SoftObjectReference类型，针对目录下的资源文件，可以用`AsyncLoadAsset`方法拿到**蓝色**的ObjectReference
-- TSoftClassPtr：同样对`FSoftObjectPtr`做了一层封装，但是让其看起来像一个TSubclassOf，对应的是蓝图中**粉色**的SoftClassReference类型，针对具体的蓝图类型，可以用`AsyncLoadClassAsset`拿到**紫色**的ObjectClassReference
+### 资源加载（2022.7.6）
+
+- FSoftObjectPath：包含资源路径AssetPathName，支支持硬盘中的资源
+- FSoftObjectPtr：继承自`TPersistentObjectPtr<FSoftObjectPath>`，包含资源路径，基类中缓存了该资源的弱引用（WeakPtr），使用Get方法拿到，如果还没有缓存，则会使用FSoftObjectPath的`ResolveObject`方法去找
+- TSoftObjectPtr：对`FSoftObjectPtr`做了一层封装，提供模板类型参数和蓝图接口，对应的是蓝图中**青色**的SoftObjectReference类型，引用可能加载也可能没加载的对象（目录下的资源文件），可以用`AsyncLoadAsset`方法拿到**蓝色**的ObjectReference
+- TSoftClassPtr：同样对`FSoftObjectPtr`做了一层封装，但是让其看起来像一个TSubclassOf，对应的是蓝图中**粉色**的SoftClassReference类型，引用可能加载也可能没加载的类和蓝图，可以用`AsyncLoadClassAsset`拿到**紫色**的ObjectClassReference
+
+上面这些Soft引用和Weak引用的最大区别是前者可以引用未被加载的资源，但会有一份Weak作为缓存，而Weak必须引用已经存在了的实例。
+
+`AddUObject`和`AddRaw`一个区别就是前者存UObject引用的方式是WeakPtr，而后者是普通指针。
 
 - LoadObject：根据路径加载UObject资源
 - LoadClass：一般用来加载蓝图资源并返回UClass，内部调用了`LoadObject<UClass>`
