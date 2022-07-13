@@ -22,6 +22,9 @@ author: Tizeng
 
 ### 资源加载（2022.7.6）
 
+- FWeakObjectPtr：存了ObjectIndex用于从GUObjectArray中拿到UObject实例，由于index会被重用，还有一个ObjectSerialNumber用来做真正的区分
+- TWeakObjectPtr：模板化的FWeakObjectPtr
+
 - FSoftObjectPath：包含资源路径AssetPathName，支支持硬盘中的资源
 - FSoftObjectPtr：继承自`TPersistentObjectPtr<FSoftObjectPath>`，包含资源路径，基类中缓存了该资源的弱引用（WeakPtr），使用Get方法拿到，如果还没有缓存，则会使用FSoftObjectPath的`ResolveObject`方法去找
 - TSoftObjectPtr：对`FSoftObjectPtr`做了一层封装，提供模板类型参数和蓝图接口，对应的是蓝图中**青色**的SoftObjectReference类型，引用可能加载也可能没加载的对象（目录下的资源文件），可以用`AsyncLoadAsset`方法拿到**蓝色**的ObjectReference

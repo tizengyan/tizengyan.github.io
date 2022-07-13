@@ -36,12 +36,13 @@ author: Tizeng
 
 - UPlayer：包含一个PlayerController，代表该玩家
 - ULocalPlayer：继承自`UPlayer`，客户端上每个玩家都有一个LocalPlayer，增加了Viewport有关的信息。服务器上可能不存在
-- UNetConnection：继承自`UPlayer`，包含NetDriver和Channel
+- UNetConnection：继承自`UPlayer`，包含NetDriver的引用。有多个Channel，并用一个Map对应了名字，可以按名字查找
 - UNetDriver：一个ServerConnection（客户端情况），多个ClientConnections（服务器情况），服务器上ServerConnection会为空
-- UChannel：
-- UActorChannel：继承自`UChannel`，
-
-- FNetworkGUID：用于在网络同步中识别对应的UObject
+  
+- UChannel：包含一个OwnerConnection。用FName存了自己的名字
+- UActorChannel：继承自`UChannel`，用来处理Actor的同步和RPC，包含ActorNetGUID（`FNetworkGUID`），ActorReplicator（`FObjectReplicator`）
+- FNetworkGUID：用于在网络同步中识别对应的UObject，用一个uint32来区分
+- FObjectReplicator：用来表示正在被复制的对象或者执行的RPC，包含该对象的GUID
 
 `APlayerController`中包含与之关联的Player（`UPlayer`，可能是LocalPlayer也可能是NetConnection），同时还有单独的NetConnection成员。
 
@@ -53,7 +54,7 @@ author: Tizeng
 如果RPC函数和Actor同步在服务器上同时发生，理论上RPC会较快到达客户端，但是由于网络延迟等问题这是不确定的，比如服务器上修改了Actor上的某个变量，我们期望客户端上收到同步后调用绑定的OnRep函数，如果此时有RPC函数也修改了客户端上的值，那么这个函数可能就不会被调用了。
 还有一种情况是用Controller去Possess一个新生成的Pawn时，会调用PRC函数`ClientRestart`到客户端，这时该Pawn可能还没有同步下来，导致客户端拿不到。引擎中对这种情况做了处理，PlayerController的`PlayerTick`中会时刻检查客户端上的Pawn是否为空，如果是则持续尝试GetPawn，直到成功拿到并Set，再去调用`ClientRestart`。
 
-RPC与属性同步还有一个执行时机的区别，如果服务端调用Client函数时客户端由于距离等问题还没有这个Actor，那么客户端之后便再也不会收到，此时就可以用属性同步来解决，只要客户端和服务端的数据不一致便会触发同步。
+RPC与属性同步还有一个执行时机的区别，如果服务端调用Client函数时客户端由于距离等问题还没有这个Actor，那么客户端之后便再也不会收到，此时就可以用属性同步来解决，只要客户端和服务端的数据不一致便会触发同步。但是有些信息比如特效，我们只希望播一次，如果有客户端延迟进入了同步范围，我们希望只同步Actor的状态而不再播放一次特效，这个可以将特效用NetMulticast、其他状态用Replication来解决。
 
 ### Relevance
 
