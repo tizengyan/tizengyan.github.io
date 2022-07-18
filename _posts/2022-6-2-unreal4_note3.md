@@ -37,10 +37,12 @@ author: Tizeng
 - UPlayer：包含一个PlayerController，代表该玩家
 - ULocalPlayer：继承自`UPlayer`，客户端上每个玩家都有一个LocalPlayer，增加了Viewport有关的信息。服务器上可能不存在
 - UNetConnection：继承自`UPlayer`，包含NetDriver的引用。有多个Channel，并用一个Map对应了名字，可以按名字查找
-- UNetDriver：一个ServerConnection（客户端情况），多个ClientConnections（服务器情况），服务器上ServerConnection会为空
+- UNetDriver：保存在当前的World中，包含一个ServerConnection（客户端情况），多个ClientConnections（服务器情况），服务器上ServerConnection会为空
   
 - UChannel：包含一个OwnerConnection。用FName存了自己的名字
-- UActorChannel：继承自`UChannel`，用来处理Actor的同步和RPC，包含ActorNetGUID（`FNetworkGUID`），ActorReplicator（`FObjectReplicator`）
+- UActorChannel：继承自`UChannel`，用来处理Actor的同步和RPC，包含ActorNetGUID（`FNetworkGUID`），ActorReplicator（`FObjectReplicator`），每个同步的Actor都对应了一个ActorChannel
+- UControlChannel：每个Connection中只有一个
+- UVoiceChannel：每个Connection中只有一个
 - FNetworkGUID：用于在网络同步中识别对应的UObject，用一个uint32来区分
 - FObjectReplicator：用来表示正在被复制的对象或者执行的RPC，包含该对象的GUID
 
