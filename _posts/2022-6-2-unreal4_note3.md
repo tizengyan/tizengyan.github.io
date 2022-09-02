@@ -32,6 +32,8 @@ author: Tizeng
 
 `AGameMode`中处理了多人射击游戏相关的内容，它维护了一个`MatchState`用来表示当前比赛的状态，当其进入InProgress状态时，说明游戏正式开始，`HandleMatchHasStarted`会被调用，通知所有Actor调用BeginPlay。
 
+`PostLogin`中会拿到之前生成的Controller，调用它的一个Client函数，生成AHUD，也就是说只有客户端有，它的`RemoteRole`是NONE。
+
 ## 网络连接（Connection）
 
 - UPlayer：包含一个PlayerController，代表该玩家
