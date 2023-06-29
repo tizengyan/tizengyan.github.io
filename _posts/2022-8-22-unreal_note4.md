@@ -69,14 +69,25 @@ PlayerInput中有一个`KeyStateMap`，记录的是每个Key对应的输入数�
 
 这阶段没啥好说的，就是使用InputComponent的接口注册InputSettings中的Action和Axis，处理业务逻辑。
 
-根据设定的`MouseCaptureMode`，会决定是否将`ViewportClient`设为Focus，这点要注意，会影响其他界面的Focus状态。这个设置是在`FReply`的`AcquireFocusAndCature`里面做的。后面点击信息在Route的时候会从里面取用。
+根据设定的`MouseCaptureMode`，会决定是否将`ViewportClient`设为Focus，这点要注意，会影响其他界面的Focus状态。这个设置是在`FReply`的`AcquireFocusAndCapture`里面做的。后面点击信息在Route的时候会从里面取用。
 
-## 插件按钮
+### GameViewportClient
 
-使用某个版本Unlua时发现蓝图界面没有预期显示生成lua文件模板的按钮，给开发带来不便。
+## UI输入事件的监听
 
-`TCommand`
+一般分两种，第一种是在非UIOnly输入模式下，使用`ListenForActionInput`接口使用UserWidget中的`InputComponent`，监听特定Action绑定按键的响应。还有一种便是直接蓝图（lua）覆写`OnKeyDown`或者`OnPreviewKeyDown`方法，接收按键输入。
 
-`TCommandList`
+方法一中我们通过控制该UI的Priority，和是否Block等来控制接收输入的层级，而在方法二中，情况略有不同。两个方法都会受引擎Navigation系统的影响，在有Navigation的情况下，手柄十字键、键盘方向键的输入不会被接收到
+`OnPreviewKeyDown`可以接收全部输入，但是UI的子组件focus时同样会接收到输入，此时如果子组件也要接收输入，有可能发生冲突，如果通过返回`Handled`结果阻止输入继续处理，那么Navigation会停止工作，这可能不是我们想要的
 
-`MapAction`
+* `FSlateApplication`：最先接收到平台给过来的输入，手柄、键盘和其他设备的输入，最后都汇聚于此统一处理。由SlateUser得到（`GetFocusPath`）路径后，先从上往下遍历（tunnel），处理`OnPreviewKeyDown`事件，如果得到的Reply没有标记为Handled，则重新从下往上遍历（bubble），继续处理`OnKeyDown`事件
+
+* `FSlateUser`：根据官方注释，它是每个输入源的代表，每当有新的输入源接入，便会创建一个SlateUser，其中储存了WidgetPath信息
+
+* `FWidgetPath`：包含当前所有大小Widget的一个路径，持有一个`Widgets`数组（类型为`FArrangedChildren`，中间做了层封装），通过不同的遍历策略依次触发当中所有Widget的输入事件，如`FTunnelPolicy`会从0遍历到底，而`FBubblePolicy`则从最末端往上遍历。0为最上层的root widget。
+
+* `FArrangedWidget`：持有Widget的Gemetry和一个`SWidget`的引用，而这个引用的实际类型（对UMG来说）其实是`SObjectWidget`。
+
+* `SObjectWidget`：持有UserWidget指针，在SlateApp处理输入时，最终会调用到这个类的`OnKeyDown`方法（如果`OnPreviewKeyDown`没有被Handle），它调用UserWidget中的对应版本之后，如果返回的结果是Unhandled，那么还会调用一次`SWidget`的版本，对Navigation进行处理，并最终返回Handled。也就是说，如果在`OnKeyDown`中返回了Handled，那么该widget的Navigation逻辑就不会走了。同理如果在`OnPreviewKeyDown`中返回了Handled，Navigation也不会走，因为此时根本就不会去调用`OnKeyDown`。
+
+* `FReply`：由事件返回给系统，该如何处理接下来的任务
