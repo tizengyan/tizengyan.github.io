@@ -80,7 +80,7 @@ PlayerInput中有一个`KeyStateMap`，记录的是每个Key对应的输入数�
 方法一中我们通过控制该UI的Priority，和是否Block等来控制接收输入的层级，而在方法二中，情况略有不同。两个方法都会受引擎Navigation系统的影响，在有Navigation的情况下，手柄十字键、键盘方向键的输入不会被接收到
 `OnPreviewKeyDown`可以接收全部输入，但是UI的子组件focus时同样会接收到输入，此时如果子组件也要接收输入，有可能发生冲突，如果通过返回`Handled`结果阻止输入继续处理，那么Navigation会停止工作，这可能不是我们想要的
 
-* `FSlateApplication`：最先接收到平台给过来的输入，手柄、键盘和其他设备的输入，最后都汇聚于此统一处理。由SlateUser得到（`GetFocusPath`）路径后，先从上往下遍历（tunnel），处理`OnPreviewKeyDown`事件，如果得到的Reply没有标记为Handled，则重新从下往上遍历（bubble），继续处理`OnKeyDown`事件
+* `FSlateApplication`：最先接收到平台给过来的输入，手柄、键盘和其他设备的输入，最后都汇聚于此统一处理。由SlateUser得到（`GetFocusPath`）路径后，先从上往下遍历（tunnel），处理`OnPreviewKeyDown`事件，如果得到的Reply没有标记为Handled，则重新从下往上遍历（bubble），继续处理`OnKeyDown`事件。处理摇杆和普通按键的方法有所不同，前者是`ProcessAnalogInputEvent`，后者是`ProcessKeyDownEvent`，其中都对Navigation做了处理。
 
 * `FSlateUser`：根据官方注释，它是每个输入源的代表，每当有新的输入源接入，便会创建一个SlateUser，其中储存了WidgetPath信息
 
@@ -88,6 +88,6 @@ PlayerInput中有一个`KeyStateMap`，记录的是每个Key对应的输入数�
 
 * `FArrangedWidget`：持有Widget的Gemetry和一个`SWidget`的引用，而这个引用的实际类型（对UMG来说）其实是`SObjectWidget`。
 
-* `SObjectWidget`：持有UserWidget指针，在SlateApp处理输入时，最终会调用到这个类的`OnKeyDown`方法（如果`OnPreviewKeyDown`没有被Handle），它调用UserWidget中的对应版本之后，如果返回的结果是Unhandled，那么还会调用一次`SWidget`的版本，对Navigation进行处理，并最终返回Handled。也就是说，如果在`OnKeyDown`中返回了Handled，那么该widget的Navigation逻辑就不会走了。同理如果在`OnPreviewKeyDown`中返回了Handled，Navigation也不会走，因为此时根本就不会去调用`OnKeyDown`。
+* `SObjectWidget`：持有UserWidget指针，在SlateApp处理输入时，最终会调用到这个类的`OnKeyDown`方法（如果`OnPreviewKeyDown`没有被Handle），它调用UserWidget中的对应版本之后，如果返回的结果是Unhandled，那么还会调用一次`SWidget`的版本，对Navigation进行处理，并最终返回Handled。也就是说，如果在`OnKeyDown`中返回了Handled，那么该widget的Navigation逻辑就不会走了。同理如果在`OnPreviewKeyDown`中返回了Handled，Navigation也不会走，因为此时根本就不会去调用`OnKeyDown`。需要注意的是，有一个配置（`FNavigationConfig`）用来判断输入的按键是否可以Nav，默认的按键是方向键和手柄的十字键，如果输入的按键在配置中存在，则会返回对应的Nav方向，方向如果有效，那么就会把方向告诉Reply（`SetNavigation`）并返回Handled。
 
 * `FReply`：由事件返回给系统，该如何处理接下来的任务
