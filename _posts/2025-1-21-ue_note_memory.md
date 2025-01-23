@@ -28,15 +28,43 @@ MakeShared<T>(...) - Used to construct a T alongside its controller, saving an a
 
 ### TSharedFromThis类
 
-继承`TSharedFromThis`类，它内部缓存了一个`WeakPtr`，使用`AsShared`和`SharedThis`方法得到智能指针，不同的是后者可以通过传递`this`指针，得到派生类的ptr（通过模板函数识别参数类型）。
+继承`TSharedFromThis`类，使用`AsShared`和`SharedThis`方法得到智能指针，不同的是后者可以通过传递`this`指针，得到派生类的ptr（通过模板函数识别参数类型）。注意不能用在析构中，因为那时候对象已经开始被删除，`check`会不过。
 
-注意不能用在构造或析构中，因为那时候对象还没有初始化完成。
+它内部缓存了一个指向自身的`WeakPtr`，前面说过TWeakPtr是不能单独使用的，一定是从共享的ptr或者ref转换得到，因此。
 
 ### TSharedPtr和TSharedRef
 
 为了方便，下面统一用ptr和ref代指这两个类型。
 
-ref必须为非空，或由一个非空ptr转换而来。ptr可以由ref隐式转换，反过来不行，需要调用`ToSharedRef`，其中会检查有效性，如果为空则不会通过编译。
+ref必须为非空，或由一个非空ptr转换而来。ptr可以由ref隐式转换，反过来不行，需要调用`ToSharedRef`，其中会检查有效性，如果为空则不会通过编译。`ToSharedRef`中调用的是ref以ptr为参数的拷贝构造和移动构造，但这两个构造函数都被声明为了`private`，防止用户直接调用。而为了让`ToSharedRef`能调用私有构造，ptr被声明为了ref的一个`friend`。
+
+### TWeakPtr
+
+`TWeakPtr`是不能直接使用的，必须依赖于`TSharedPtr`，每次使用前都需要调用`Pin`方法得到一个`TSharedPtr`，判空后使用。同样的，为了调用`TSharedPtr`的私有构造，`TWeakPtr`也是`TSahredPtr`的一个`friend`。
+
+其中的关键步骤是`TWeakPtr`尝试用自身的弱引用计数器构造`TSharedPtr`的共享计数器：
+
+```c++
+/** Creates a shared referencer object from a weak referencer object.  This will only result
+    in a valid object reference if the object already has at least one other shared referencer. */
+FSharedReferencer( FWeakReferencer< Mode > const& InWeakReference ) : ReferenceController( InWeakReference.ReferenceController )
+{
+    // If the incoming reference had an object associated with it, then go ahead and increment the
+    // shared reference count
+    if( ReferenceController != nullptr )
+    {
+        // Attempt to elevate a weak reference to a shared one.  For this to work, the object this
+        // weak counter is associated with must already have at least one shared reference.  We'll
+        // never revive a pointer that has already expired!
+        if( !ReferenceController->ConditionallyAddSharedReference() )
+        {
+            ReferenceController = nullptr;
+        }
+    }
+}
+```
+
+方法`ConditionallyAddSharedReference`会保证只有在共享引用计数大于0时，才会返回`true`，并增加计数，成功构造出有效的`TSharedPtr`，这个下面会详细讲到。
 
 ### 引用计数的实现
 
@@ -62,27 +90,27 @@ RefCountType WeakReferenceCount{1};
 // in TIntrusiveReferenceController
 virtual void DestroyObject() override
 {
-	DestructItem((ObjectType*)&ObjectStorage);
+    DestructItem((ObjectType*)&ObjectStorage);
 }
 // in TIntrusiveReferenceController end
 
 /**
  * Destructs a single item in memory.
  *
- * @param	Elements	A pointer to the item to destruct.
+ * @param    Elements    A pointer to the item to destruct.
  *
  * @note: This function is optimized for values of T, and so will not dynamically dispatch destructor calls if T's destructor is virtual.
  */
 template <typename ElementType>
 FORCEINLINE void DestructItem(ElementType* Element)
 {
-	if constexpr (!TIsTriviallyDestructible<ElementType>::Value)
-	{
-		// We need a typedef here because VC won't compile the destructor call below if ElementType itself has a member called ElementType
-		typedef ElementType DestructItemsElementTypeTypedef;
+    if constexpr (!TIsTriviallyDestructible<ElementType>::Value)
+    {
+        // We need a typedef here because VC won't compile the destructor call below if ElementType itself has a member called ElementType
+        typedef ElementType DestructItemsElementTypeTypedef;
 
-		Element->DestructItemsElementTypeTypedef::~DestructItemsElementTypeTypedef();
-	}
+        Element->DestructItemsElementTypeTypedef::~DestructItemsElementTypeTypedef();
+    }
 }
 ```
 
@@ -100,10 +128,10 @@ virtual void DestroyObject() override
 template <typename Type>
 struct DefaultDeleter
 {
-	FORCEINLINE void operator()(Type* Object) const
-	{
-		delete Object;
-	}
+    FORCEINLINE void operator()(Type* Object) const
+    {
+        delete Object;
+    }
 };
 ```
 
