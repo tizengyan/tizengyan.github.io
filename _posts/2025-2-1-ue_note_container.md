@@ -118,5 +118,11 @@ class TSparseArray
 
 ## TSet
 
+储存一系列不重复的元素，内部使用了`TSparseArray`，增删查都是O(1)的复杂度。
+
+key和index是两个不同的概念，index是数据数组（Elements）的下标
+
+hash index
+
 ## TMap
 
