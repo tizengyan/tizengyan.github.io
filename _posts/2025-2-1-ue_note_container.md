@@ -7,7 +7,7 @@ excerpt: 详细了解一下UE中常用容器的实现
 author: Tizeng
 ---
 
-`TMap`由`TSet`实现，`TSet`由`TSparseArray`实现，我们一步步来看。
+`TMap`由`TSet`实现，`TSet`由`TSparseArray`实现，而它又由普通的`TArray`实现，我们一步步来看。
 
 ## TArray
 
@@ -48,6 +48,7 @@ void SetBitNoCheck(int32 Index, bool Value)
 {
     uint32& Word = GetData()[Index/NumBitsPerDWORD];
     uint32 BitOffset = (Index % NumBitsPerDWORD);
+    // 先清除目标位的数据，再做或运算
     Word = (Word & ~(1 << BitOffset)) | (((uint32)Value) << BitOffset);
 }
 
@@ -118,11 +119,109 @@ class TSparseArray
 
 ## TSet
 
-储存一系列不重复的元素，内部使用了`TSparseArray`，增删查都是O(1)的复杂度。
+储存一系列不重复的元素，内部使用了`TSparseArray`和哈希表，增删查都是O(1)的复杂度。
 
-key和index是两个不同的概念，index是数据数组（Elements）的下标
+首先拆解一下内部的结构:
 
-hash index
+* 稀疏数组`Elements`：类型为`TSetElement`
+    它封装了：
+    * `ElementType Value`：注意不是指针，因为直接通过动态数组管理内存，数组的allocator会负责分配TSetElement的内存，这里没必要再用指针增加额外的判断
+    * `FSetElementId HashNextId`：哈希桶中下一个元素的位置
+    * `int32 HashIndex`：哈希桶在`Elements`中的位置
+* 哈希表`Hash`：可以看作是allocator分配的一个`FSetElementId`的数组，每次使用`GetAllocation`方法获取地址，然后使用偏移和方括号拿到数据
+    * `FSetElementId`内部就是一个index，用来指示在`Elements`中的位置
+* 哈希表大小`HashSize`：由于每次扩容都是翻倍，因此这个值是2的幂次，在取余的时候可以用位运算优化，直接和`HashSize - 1`做与运算
+
+key和index是两个不同的概念，index是内部数据数组（`Elements`）的下标，是哈希桶的id，而key是哈希表用来计算哈希值的依据，堆`TSet`来说就是加进来的元素本身，可以使用`KeyFuncs::GetSetKey(Element.Value)`得到，默认情况下用的是`DefaultKeyFuncs`：
+
+```c++
+/**
+ * The base KeyFuncs type with some useful definitions for all KeyFuncs; meant to be derived from instead of used directly.
+ * bInAllowDuplicateKeys=true is slightly faster because it allows the TSet to skip validating that
+ * there isn't already a duplicate entry in the TSet.
+  */
+template<typename ElementType,typename InKeyType,bool bInAllowDuplicateKeys = false>
+struct BaseKeyFuncs
+{
+	typedef InKeyType KeyType;
+	typedef typename TCallTraits<InKeyType>::ParamType KeyInitType;
+	typedef typename TCallTraits<ElementType>::ParamType ElementInitType;
+
+	enum { bAllowDuplicateKeys = bInAllowDuplicateKeys };
+};
+
+/**
+ * A default implementation of the KeyFuncs used by TSet which uses the element as a key.
+ */
+template<typename ElementType,bool bInAllowDuplicateKeys /*= false*/>
+struct DefaultKeyFuncs : BaseKeyFuncs<ElementType,ElementType,bInAllowDuplicateKeys>
+{
+    // ...
+};
+```
+
+可以看到BaseKeyFuncs中通过模板参数定义了元素和key的类型，TSet所使用的DefaultKeyFuncs将其都定义为了ElementType，因此它返回的key类型就是元素类型。然后就可以用`KeyFuncs::GetKeyHash`得到计算出的哈希值（具体的计算方式看用的是什么`KeyFuncs`以及哪个重载函数）。得到哈希值后就可以从哈希表（`Hash`）中拿到index了：
+
+```c++
+FORCEINLINE FSetElementId& GetTypedHash(int32 HashIndex) const
+{
+	return ((FSetElementId*)Hash.GetAllocation())[HashIndex & (HashSize - 1)];
+}
+```
+
+由于做了取余操作，可能会发生冲突，即不同元素映射到了同一个哈希桶上，因此找得到index之后还要在哈希桶中逐个比较，才能找到正确的index，`FindId`方法中使用了`KeyFuncs::Matches`，它的默认实现就是使用了`==`操作符来判断是否找到了正确的元素。
+
+### Emplace
+
+和`TArray`一样，`Add`实际上就是调用了`Emplace`，它做了以下几件事：
+
+1. 在`Elements`上请求一个位置（`AddUninitialized`），然后在上面构造一个元素（实际被`TSetElement`持有）
+2. 计算元素的哈希值，调用`TryReplaceExisting`看看是否存在重复的key，如果存在则会将其覆盖，然后删除刚刚添加的元素（可以在`KeyFuncs`中配置`bAllowDuplicateKeys`来控制是否允许重复key）
+3. 检查哈希表大小看看是否需要扩容，如果是则`Rehash`，重建新大小的`Hash`，对所有元素执行一遍`LinkElement`，如果不是则直接对新元素调用`LinkElement`
+
+这里`LinkElement`做的事是重点，直接看代码：
+
+```c++
+/** Links an added element to the hash chain. */
+FORCEINLINE void LinkElement(FSetElementId ElementId, const SetElementType& Element, uint32 KeyHash) const
+{
+	// Compute the hash bucket the element goes in.
+	Element.HashIndex = KeyHash & (HashSize - 1);
+
+	// Link the element into the hash bucket.
+	Element.HashNextId = GetTypedHash(Element.HashIndex);
+	GetTypedHash(Element.HashIndex) = ElementId;
+}
+```
+
+只有三句，先将哈希值取余得到桶id，桶其实就是一个链表，通过`GetTypedHash`可以从`Hash`中获取到桶的位置，它实际上是`Elements`的下标，因此二三句的作用相当于对一个链表进行操作，将新的元素指向之前的表头，然后把表头替换成这个新元素的位置，那么下次查找的时候就会先找到这个刚加进来的元素了。完成后新元素便添加进了`TSet`中。
+
+当`HashSize`发生变化时，都要检查一次是否需要rehash，`Reset`方法不会改变大小只会清空元素和哈希表，因此不会触发rehash，而`Empty`则有可能，因为它除了清空元素还会指定要留多少空挡。
 
 ## TMap
 
+`TMap`使用了一个`TSet`储存数据（`Pairs`），类型是一个只使用key和value的`TTuple`作为pair，等价于只有key和value两个成员的结构体，`TMap`中的操作实际上都是对这个`Pairs`在做操作。前面提到过`TSet`通过`KeyFuncs`的实现方式来控制哈希值的计算和元素到key的转换，`TMap`利用了这个性质，实现了`TDefaultMapKeyFuncs`：
+
+```c++
+
+/** Defines how the map's pairs are hashed. */
+template<typename KeyType, typename ValueType, bool bInAllowDuplicateKeys>
+struct TDefaultMapKeyFuncs : BaseKeyFuncs<TPair<KeyType, ValueType>, KeyType, bInAllowDuplicateKeys>
+{
+	typedef typename TTypeTraits<KeyType>::ConstPointerType KeyInitType;
+	typedef const TPairInitializer<typename TTypeTraits<KeyType>::ConstInitType, typename TTypeTraits<ValueType>::ConstInitType>& ElementInitType;
+
+	static FORCEINLINE KeyInitType GetSetKey(ElementInitType Element)
+	{
+		return Element.Key;
+	}
+
+    // ...
+};
+```
+
+可以看到它的元素类型是`TPair<KeyType, ValueType>`，`GetSetKey`返回的是元素中的`Key`成员，这样就保证了修改数据时是使用`Key`来计算哈希值。
+
+`TSet`是由`TSparseArray`实现的，它自然是支持排序的，因此`TSet`也可以排序，只要排序完了之后rehash一下即可，那么`TMap`的排序自然也就很简单了，只需区分一下`KeySort`和`ValueSort`，分别使用元素`TPair`中的key和value作为比较对象即可。
+
+### TTuple
