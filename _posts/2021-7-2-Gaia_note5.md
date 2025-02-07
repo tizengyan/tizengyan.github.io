@@ -2,7 +2,7 @@
 layout: post
 title: "Gaia笔记5——CJ版本更新"
 date: 2021-7-2
-categories: UE4
+categories: 工作笔记
 tags: gaia
 excerpt: 做的各种功能
 author: Tizeng
