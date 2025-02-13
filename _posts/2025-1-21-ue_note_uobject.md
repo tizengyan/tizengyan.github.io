@@ -31,15 +31,17 @@ UObject有两层基类，一个`UObjectBaseUtility`，里面主要是一些常�
 
 UObject内部会缓存一个`InternalIndex`，它就是该对象在`GUObjectArray`中的下标，`GetUniqueID`返回的也是这个值，换句话说只要有这个id就可以从全局数组中拿到这个对象，
 
-### FWeakObjectPtr
+### TWeakObjectPtr
 
 weak顾名思义是一个弱引用，它不会阻止被引用对象的gc，前面提到过其内部缓存了id和`SerialNumber`，获取对象通过id从`GUObjectArray`中拿到item，然后判断其序列号是否和自身缓存的相匹配，如果是则返回item持有的UObject指针。有效性直接通过item上的`Flags`信息进行判断。
 
-### FStrongObjectPtr
+### TStrongObjectPtr
 
-既然有弱引用，那么就会有强引用，只要这个引用还在，被引用的对象就不会被gc，它的实现方式是内部有一个用`TUniquePtr`缓存的`TInternalReferenceCollector`，它的功能
+既然有弱引用，那么就会有强引用，只要这个引用还在，被引用的对象就不会被gc，它的实现方式是内部有一个用`TUniquePtr`缓存的`TInternalReferenceCollector`，看名字可以知道它是一个引用收集器，内部缓存了一个UObject实例指针，初始化时会按需为收集器分配内存，如果已经存在则替换其中缓存的对象指针。
 
-继承自`FGCObject`，
+但收集器自身并不会阻止对象被gc，真正起作用的是其基类`FGCObject`，注释中写道这个类是用来给非UObject注册gc的，它在构造时会初始化一个全局静态`GGCObjectReferencer`，并调用AddToRoot，因此这个对象不会被gc。然后将自身（`FGCObject`）交给它的一个数组中保存，并在析构时从中移除。注意这里被全局`GGCObjectReferencer`管理的是收集器`TInternalReferenceCollector`（因为它继承自`FGCObject`）而不是被引用的UObject，由于收集器被标记为root，gc时会被调用内部的方法添加其他需要被索引的对象，此时便会把数组中所有的`FGCObject`也调用一次`AddReferencedObjects`，收集器便会将缓存的UObject指针给到传递进来真正的ReferenceCollector，以避免被gc。
+
+当被释放时，会将自身从全局的Referencer中移除，下次gc到来时便不会阻止其gc了。
 
 ## 反射
 
