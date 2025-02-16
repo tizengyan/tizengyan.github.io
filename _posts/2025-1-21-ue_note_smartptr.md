@@ -7,9 +7,9 @@ excerpt: 详细了解一下UE智能指针的实现
 author: Tizeng
 ---
 
-## 智能指针
+## 非UObject智能指针
 
-对c++的`shared`、`unique`、`weak`指针的重新实现，使用引用计数进行gc，但不能用在`UObject`上，`UObject`是一套独立的内存管理系统。
+对c++的`shared`、`unique`、`weak`指针的重新实现，使用引用计数进行gc，但不能用在`UObject`上，`UObject`是一套独立的内存管理系统。主要参考[知乎文章](https://zhuanlan.zhihu.com/p/369974105)和源码，使用引擎版本为5.1。
 
 ### MakeShareable和MakeShared的区别
 
@@ -30,7 +30,7 @@ MakeShared<T>(...) - Used to construct a T alongside its controller, saving an a
 
 继承`TSharedFromThis`类，使用`AsShared`和`SharedThis`方法得到智能指针，不同的是后者可以通过传递`this`指针，得到派生类的ptr（通过模板函数识别参数类型）。注意不能用在析构中，因为那时候对象已经开始被删除，`check`会不过。
 
-它内部缓存了一个指向自身的`WeakPtr`，前面说过TWeakPtr是不能单独使用的，一定是从共享的ptr或者ref转换得到，因此。
+它内部缓存了一个指向自身的`WeakPtr`，前面说过`TWeakPtr`是不能单独使用的，一定是从共享的ptr或者ref转换得到，因此每当shared指针构造时都会尝试去将自身写入这个weak指针中去，这取决于当前的类是否有继承于`TSharedFromThis`，如果是则可以通过这个weak指针得到对应的shared指针了。
 
 ### TSharedPtr和TSharedRef
 
@@ -40,7 +40,7 @@ ref必须为非空，或由一个非空ptr转换而来。ptr可以由ref隐式�
 
 ### TWeakPtr
 
-`TWeakPtr`是不能直接使用的，必须依赖于`TSharedPtr`，每次使用前都需要调用`Pin`方法得到一个`TSharedPtr`，判空后使用。同样的，为了调用`TSharedPtr`的私有构造，`TWeakPtr`也是`TSahredPtr`的一个`friend`。
+`TWeakPtr`是不能直接使用的，必须依赖于`TSharedPtr`或`TSharedRef`，每次使用前都需要调用`Pin`方法得到一个shared，判空后使用。同样的，为了调用`TSharedPtr`的私有构造，`TWeakPtr`也是`TSahredPtr`的一个`friend`。
 
 其中的关键步骤是`TWeakPtr`尝试用自身的弱引用计数器构造`TSharedPtr`的共享计数器：
 
@@ -135,7 +135,7 @@ struct DefaultDeleter
 };
 ```
 
-函数`NewDefaultReferenceController`会直接返回一个使用DefaultDeleter的计数器。
+函数`NewDefaultReferenceController`会直接返回一个使用`DefaultDeleter`的计数器。
 
 #### 线程安全
 
@@ -143,6 +143,10 @@ struct DefaultDeleter
 
 ### TUniquePtr
 
-最后说一下`TUniquePtr`的实现，它保证的是对一个对象独立的所有权，即对象的生命周期和它相绑定，这意味着它不能被拷贝（拷贝构造和拷贝赋值元运算符都被标记为delete），只能move或通过普通指针构造。可以调用`MakeUnique`直接构造对象并得到一个`TUniquePtr`。
+最后说一下`TUniquePtr`的实现，它保证的是对一个对象独立的所有权，即对象的生命周期和它相绑定，这意味着它不能被拷贝（拷贝构造和拷贝赋值运算符都被标记为delete），只能move或通过普通指针构造。可以调用`MakeUnique`直接构造对象并得到一个`TUniquePtr`。同样可以自定义deleter来控制删除的逻辑。
 
-同样可以自定义deleter来控制删除的逻辑。
+补充一点，weak指针是不能通过unique构造的，因为weak使用的时候必须转换成一个在作用域内有效的指针才能安全的使用，而如果通过unique指针构造，无论是将其转换成shared还是unique都违背了unique指针的唯一性。从实现上来讲，weak内部是通过引用计数是否为0来判断引用的对象是否还有效的，而unique指针并不存在引用计数。
+
+## TSoftObjectPtr等软引用
+
+不同于常规的弱引用和强引用，UE中还有一种软引用，它是通过保存资源的路径，在需要时加载并缓存，达到一种异步的效果。
