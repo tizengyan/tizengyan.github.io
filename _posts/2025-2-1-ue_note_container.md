@@ -7,7 +7,7 @@ excerpt: 详细了解一下UE中常用容器的实现
 author: Tizeng
 ---
 
-`TMap`由`TSet`实现，`TSet`由`TSparseArray`实现，而它又由普通的`TArray`实现，我们一步步来看。
+`TMap`由`TSet`实现，`TSet`由`TSparseArray`实现，而它又由普通的`TArray`实现，我们一步步来看。主要参考[知乎文章](https://zhuanlan.zhihu.com/p/386420743)和源码，使用的引擎版本为5.1。
 
 ## TArray
 
@@ -132,7 +132,7 @@ class TSparseArray
     * `FSetElementId`内部就是一个index，用来指示在`Elements`中的位置
 * 哈希表大小`HashSize`：由于每次扩容都是翻倍，因此这个值是2的幂次，在取余的时候可以用位运算优化，直接和`HashSize - 1`做与运算
 
-key和index是两个不同的概念，index是内部数据数组（`Elements`）的下标，是哈希桶的id，而key是哈希表用来计算哈希值的依据，堆`TSet`来说就是加进来的元素本身，可以使用`KeyFuncs::GetSetKey(Element.Value)`得到，默认情况下用的是`DefaultKeyFuncs`：
+key和index是两个不同的概念，index是内部数据数组（`Elements`）的下标，是哈希桶的id，而key是哈希表用来计算哈希值的依据，对`TSet`来说就是加进来的元素本身，可以使用`KeyFuncs::GetSetKey(Element.Value)`得到，默认情况下用的是`DefaultKeyFuncs`：
 
 ```c++
 /**
@@ -160,7 +160,7 @@ struct DefaultKeyFuncs : BaseKeyFuncs<ElementType,ElementType,bInAllowDuplicateK
 };
 ```
 
-可以看到BaseKeyFuncs中通过模板参数定义了元素和key的类型，TSet所使用的DefaultKeyFuncs将其都定义为了ElementType，因此它返回的key类型就是元素类型。然后就可以用`KeyFuncs::GetKeyHash`得到计算出的哈希值（具体的计算方式看用的是什么`KeyFuncs`以及哪个重载函数）。得到哈希值后就可以从哈希表（`Hash`）中拿到index了：
+可以看到`BaseKeyFuncs`中通过模板参数定义了元素和key的类型，`TSet`所使用的`DefaultKeyFuncs`将其都定义为了`ElementType`，因此它返回的key类型就是元素类型。然后就可以用`KeyFuncs::GetKeyHash`得到计算出的哈希值（具体的计算方式看用的是什么`KeyFuncs`以及哪个重载函数）。得到哈希值后就可以从哈希表（`Hash`）中拿到index了：
 
 ```c++
 FORCEINLINE FSetElementId& GetTypedHash(int32 HashIndex) const
@@ -175,7 +175,7 @@ FORCEINLINE FSetElementId& GetTypedHash(int32 HashIndex) const
 
 和`TArray`一样，`Add`实际上就是调用了`Emplace`，它做了以下几件事：
 
-1. 在`Elements`上请求一个位置（`AddUninitialized`），然后在上面构造一个元素（实际被`TSetElement`持有）
+1. 在`Elements`上请求一个位置（`AddUninitialized`），然后在上面构造输入的元素（实际被`TSetElement`持有）
 2. 计算元素的哈希值，调用`TryReplaceExisting`看看是否存在重复的key，如果存在则会将其覆盖，然后删除刚刚添加的元素（可以在`KeyFuncs`中配置`bAllowDuplicateKeys`来控制是否允许重复key）
 3. 检查哈希表大小看看是否需要扩容，如果是则`Rehash`，重建新大小的`Hash`，对所有元素执行一遍`LinkElement`，如果不是则直接对新元素调用`LinkElement`
 
@@ -198,12 +198,73 @@ FORCEINLINE void LinkElement(FSetElementId ElementId, const SetElementType& Elem
 
 当`HashSize`发生变化时，都要检查一次是否需要rehash，`Reset`方法不会改变大小只会清空元素和哈希表，因此不会触发rehash，而`Empty`则有可能，因为它除了清空元素还会指定要留多少空挡。
 
-## TMap
+### Remove
 
-`TMap`使用了一个`TSet`储存数据（`Pairs`），类型是一个只使用key和value的`TTuple`作为pair，等价于只有key和value两个成员的结构体，`TMap`中的操作实际上都是对这个`Pairs`在做操作。前面提到过`TSet`通过`KeyFuncs`的实现方式来控制哈希值的计算和元素到key的转换，`TMap`利用了这个性质，实现了`TDefaultMapKeyFuncs`：
+直接看代码：
 
 ```c++
+template<typename ComparableKey>
+FORCEINLINE int32 RemoveImpl(uint32 KeyHash, const ComparableKey& Key)
+{
+	int32 NumRemovedElements = 0;
 
+	FSetElementId* NextElementId = &GetTypedHash(KeyHash);
+	while (NextElementId->IsValidId())
+	{
+		auto& Element = Elements[*NextElementId];
+		if (KeyFuncs::Matches(KeyFuncs::GetSetKey(Element.Value), Key))
+		{
+			// This element matches the key, remove it from the set.  Note that Remove sets *NextElementId to point to the next
+			// element after the removed element in the hash bucket.
+			Remove(*NextElementId);
+			NumRemovedElements++;
+
+			if (!KeyFuncs::bAllowDuplicateKeys)
+			{
+				// If the hash disallows duplicate keys, we're done removing after the first matched key.
+				break;
+			}
+		}
+		else
+		{
+			NextElementId = &Element.HashNextId;
+		}
+	}
+
+	return NumRemovedElements;
+}
+
+void Remove(FSetElementId ElementId)
+{
+	if (Elements.Num())
+	{
+		const auto& ElementBeingRemoved = Elements[ElementId];
+
+		// Remove the element from the hash.
+		for(FSetElementId* NextElementId = &GetTypedHash(ElementBeingRemoved.HashIndex);
+			NextElementId->IsValidId();
+			NextElementId = &Elements[*NextElementId].HashNextId)
+		{
+			if(*NextElementId == ElementId)
+			{
+				*NextElementId = ElementBeingRemoved.HashNextId;
+				break;
+			}
+		}
+	}
+
+	// Remove the element from the elements array.
+	Elements.RemoveAt(ElementId);
+}
+```
+
+`RemoveImpl`先通过哈希值找到桶，然后在哈希桶中逐个查找需要删除的元素，`Remove`执行真正的删除，要注意`Remove`中先调用了`GetTypedHash`拿到`Hash`中的桶id引用作为遍历的起始点，后续则是获取的`Elements`中元素的`HashNextId`引用，这是因为如果第一次就找到了要删除的元素，则需要对`Hash`进行更新，将下一个元素的id设置为桶的表头，如果不是则更新**前一个**（id是下一个，但是实际上是从前一个元素上获取）元素的`HashNextId`到下一个元素id上，也就是从链表中删除当前元素，结束后再执行真正的删除操作，即从`Elements`中移除该元素。
+
+## TMap
+
+`TMap`使用了一个`TSet`储存数据`Pairs`，类型是一个只使用key和value的`TTuple`作为pair，等价于只有key和value两个成员的结构体，`TMap`中的操作实际上都是对这个`Pairs`在做操作。前面提到过`TSet`通过`KeyFuncs`的实现方式来控制哈希值的计算和元素到key的转换，`TMap`利用了这个性质，实现并使用了`TDefaultMapKeyFuncs`：
+
+```c++
 /** Defines how the map's pairs are hashed. */
 template<typename KeyType, typename ValueType, bool bInAllowDuplicateKeys>
 struct TDefaultMapKeyFuncs : BaseKeyFuncs<TPair<KeyType, ValueType>, KeyType, bInAllowDuplicateKeys>
@@ -224,4 +285,15 @@ struct TDefaultMapKeyFuncs : BaseKeyFuncs<TPair<KeyType, ValueType>, KeyType, bI
 
 `TSet`是由`TSparseArray`实现的，它自然是支持排序的，因此`TSet`也可以排序，只要排序完了之后rehash一下即可，那么`TMap`的排序自然也就很简单了，只需区分一下`KeySort`和`ValueSort`，分别使用元素`TPair`中的key和value作为比较对象即可。
 
-### TTuple
+### TTuple（TODO）
+
+## 总结
+
+稀疏数组通过在删除时不释放内存的方式，提高效率，内部直接使用一个`TArray`来存放数据，然后一个`TBitArray`来标记每个元素是否有效，它内部实际上就是储存的32位整型的元素，然后通过换算下标和位运算来设置某个位上面的标记（01）。被删除元素留下的空挡在下个元素被加入的时候会重新使用，实现方法是将数据数组的类型定义为一个`union`，当有数据时就是元素类型，无数据时变为一个链表的结点，通过保存前后index的方式来链接各个空挡，然后再维护一个表头的下标和一个链表的长度，就构建了一个链表作为freelist，每当有新元素申请加入的时候，先看看freelist是否为空，如果非空则取出表头的位置，在上面构造新的元素，同时将链表的后一位记为表头。
+
+`TSet`内部使用了稀疏数组，实际上存储的是一个新定义的结构，除了输入的元素外，还缓存了下一个桶的下标，形成一个链表，每个元素实际上是一个链表的表头。每当哈希表的大小，也就是`TSet`的大小发生变化，都需要进行rehash，重新构建一次桶中的数据。
+添加元素时先在稀疏数组中申请一个位置并构造，然后更新哈希表的信息，首先需要用一个key计算哈希值，`TSet`直接使用了元素本身作为key，计算出哈希值，通过这个值从另一个维护桶id的数组中拿到桶id，也就是稀疏数组中哈希桶的初始位置（链表的表头），然后将新元素的id作为新的表头插入其中，并更新桶id数组。如果有需要则直接重新构建哈希表。
+查找元素则通过哈希值找到数组中的桶，也就是第一个元素的位置，看看是不是我们要找的元素，由于不同的元素可能得到相同的哈希值，也就是冲突，因此需要逐个比对，不是则通过储存的下一个元素的id继续去找，直到找到正确的元素。
+删除元素时除了直接将稀疏数组中的数据删除，还需要将哈希桶的信息进行更新，如果是桶中的第一个元素，则需要更新表头到下一个元素id上，如果是后面的元素，则需要在链表上将这个元素id移除。
+
+`TMap`内部使用一个键值对作为元素的`TSet`，通过重写使用的`KeyFuncs`类，将key而非元素本身作为哈希值的计算依据，大部分的操作都是直接对这个`TSet`进行。
