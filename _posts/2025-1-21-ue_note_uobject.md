@@ -14,7 +14,7 @@ author: Tizeng
 UE的gc策略是mark and sweep，即分为标记清除两个阶段，每隔一段时间检查所有UObject的可达性，首先有一个root set，它包含的对象总是被认为是可达的，然后根据引用关系可以找到所有可达的UObject，那么其余没有被检测到的或是显式被标记要删除的对象，都会在gc周期到来时被清理掉。
 只有被标记为uproperty的UObject指针才会被视为有引用，并在gc后被自动置空，如果不想用uproperty，则可以使用`FWeakObjectPtr`或`TStrongObjectPtr`。
 
-UObject有两层基类，一个`UObjectBaseUtility`，里面主要是一些常用的接口，再往上是`UObjectBase`，基础功能实现大部分在这里，在构造时会做两件事：
+UObject有两层基类，一个`UObjectBaseUtility`，里面主要是一些常用的接口，再往上是`UObjectBase`，基础功能实现大部分在这里，它在构造时会做两件事：
 
 1. 调用`AddObject`，将自己加入全局容器`GUObjectArray`中，但要注意数组中并不是直接储存的对象指针，而是`FObjectItem`，它除了持有对象指针之外，还有一个`SerialNumber`，在需要时通过特定方法获取，实际上就是一个不停自增的整数，这样可以保证不重复，`FWeakObjectPtr`内部就是通过id和`SerialNumber`来缓存对象，因为只看id的话，无法分辨那个位置上的对象是否已经被释放或是被其他对象所代替，有了这个`SerialNumber`，就可以准确判断出当前引用的对象是否还有效了
 2. 调用`HashObject`，用名字计算出哈希值，然后将自身、outer、class等信息存入一个哈希表单例中
@@ -42,7 +42,7 @@ UObject内部会缓存一个`InternalIndex`，它就是该对象在`GUObjectArra
 
 提一句`TObjectIterator`有一个类型为UObject的特化版本，直接继承自`FUObjectArray`内部的`Iterator`，因为如果要遍历所有对象，直接从全局数组中开始就行了，不需要通过哈希表。
 
-### UPROPERTY宏
+## UPROPERTY宏
 
 被这个宏标记的UObject指针成员变量会被当做被这个类引用？
 在gc时不会被删除
@@ -52,15 +52,48 @@ UObject内部会缓存一个`InternalIndex`，它就是该对象在`GUObjectArra
 
 引擎中提供了一些为UObject设计的类和接口，常用的有下面几种。
 
+### StaticClass
+
+获取当前UObject类对应的`UClass`，每个UObject都有，查看`.generated.h`文件可以找到是在`DECLARE_CLASS`宏中定义的，实现是调用了全局方法`GetPrivateStaticClassBody`，先通过`FindObject`看看能不能用提供的outer和name找到对应的`UClass`，如果找不到则new一个新的出来并初始化。
+
+UClass自己调用StaticClass会返回什么？
+
 ### NewObject
 
 引擎中用来动态创建UObject的方法，理论上所有用户创建的UObject都需要用这个接口创建，它大致做了下面几件事：
 
-1. 调用`StaticAllocateObject`分配内存，它会先根据传入的名字和outer尝试查找是否已经存在一个一样的obj，如果是则会先析构它，然后返回那个地址，如果没找到则用`GUObjectAllocator`分配一块内存出来
-2. 使用上面分配的内存地址初始化`FObjectInitializer`，然后调用UObject的默认构造
+1. 调用`StaticAllocateObject`分配内存，根据名字不同有不同的处理
+    - 没有指定名字时，调用`MakeUniqueObjectName`创建一个唯一的name
+    - 指定了名字则尝试通过它和outer等信息去哈希表中查找有无存在的对象，如果找到则将其析构，没找到就用`GUObjectAllocator`分配一块内存出来
+    - 在目标内存上构造`UObjectBase`，此时便会将自己加入全局数组和哈希表中
+2. 使用上面的内存地址初始化`FObjectInitializer`参数，然后调用UObject的默认构造
 
-继承自UObject的类经常会看到参数为`FObjectInitializer`的构造函数，它是在
-，实际上UObject只提供了这两种构造函数。
+继承自UObject的类经常会看到参数为`FObjectInitializer`的构造函数，它是保存在在这个`UObject`对应的`UClass`中的一个函数指针`ClassConstructor`中，查看`GENERATED_BODY`宏的展开，发现其在生成的头文件中，会使用以下两个宏定义：
+
+```c++
+#define DEFINE_DEFAULT_CONSTRUCTOR_CALL(TClass) \
+	static void __DefaultConstructor(const FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass; }
+
+#define DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static void __DefaultConstructor(const FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass(X); }
+```
+
+注意上面的`TClass`不是`UClass`的类型，而是输入的UObject类型，因此最后会调用输入UObject的构造，根据用户使用的是`GENERATED_BODY`还是`GENERATED_UCLASS_BODY`会定义不同版本的默认构造（5.1源码中用这两个宏都会定义出有`FObjectInitializer`的版本）。而在`UClass`头文件中可以找到一个模板函数：
+
+```c++
+/**
+ * Helper template to call the default constructor for a class
+ */
+template<class T>
+void InternalConstructor( const FObjectInitializer& X )
+{ 
+	T::__DefaultConstructor(X);
+}
+```
+
+`UClass`初始化的时候便是用这个函数保存到了函数指针`ClassConstructor`中，。
+
+可以看到UObject只提供了这两种构造函数，在调用`NewObject`之后也只会触发这两种。
 
 ### TWeakObjectPtr
 
