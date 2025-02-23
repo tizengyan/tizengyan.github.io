@@ -42,21 +42,9 @@ UObject内部会缓存一个`InternalIndex`，它就是该对象在`GUObjectArra
 
 提一句`TObjectIterator`有一个类型为UObject的特化版本，直接继承自`FUObjectArray`内部的`Iterator`，因为如果要遍历所有对象，直接从全局数组中开始就行了，不需要通过哈希表。
 
-## UPROPERTY宏
-
-被这个宏标记的UObject指针成员变量会被当做被这个类引用？
-在gc时不会被删除
-如果在外部被删除则会自动置空
-
 ## 常用的类和接口
 
 引擎中提供了一些为UObject设计的类和接口，常用的有下面几种。
-
-### StaticClass
-
-获取当前UObject类对应的`UClass`，每个UObject都有，查看`.generated.h`文件可以找到是在`DECLARE_CLASS`宏中定义的，实现是调用了全局方法`GetPrivateStaticClassBody`，先通过`FindObject`看看能不能用提供的outer和name找到对应的`UClass`，如果找不到则new一个新的出来并初始化。
-
-UClass自己调用StaticClass会返回什么？
 
 ### NewObject
 
@@ -91,9 +79,13 @@ void InternalConstructor( const FObjectInitializer& X )
 }
 ```
 
-`UClass`初始化的时候便是用这个函数保存到了函数指针`ClassConstructor`中，。
+`UClass`初始化的时候便是用这个函数初始化了函数指针`ClassConstructor`，然后在`NewObject`分配空间完成后进行调用。
 
 可以看到UObject只提供了这两种构造函数，在调用`NewObject`之后也只会触发这两种。
+
+### CreateDefaultSubobject
+
+一般用来在构造时创建所包含的组件，它也只能在构造中调用，因为本质上是调用了`FObjectInitializer`中的同名方法，这个类在构造时会将自己push进一个全局的栈中，析构时会pop掉，一并储存的还有当前要构造的UObject的信息，通过获取栈顶的元素便可以拿到当前对象所对应的initializer，因此必须要在构造中进行调用。
 
 ### TWeakObjectPtr
 
