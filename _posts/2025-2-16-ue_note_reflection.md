@@ -22,8 +22,7 @@ UClass自己调用StaticClass会返回什么？大钊的文章提到会引用到
 ## UPROPERTY宏的作用
 
 被这个宏标记的成员会在`.gen.cpp`中生成`NewProp_`开头的反射数据，并被加入到`PropPointers`中
-如果是UObject成员变量会被当做被这个类引用？
-在gc时不会被删除
+如果是UObject成员变量会被当做被这个类引用？在gc时不会被删除
 如果在外部被删除则会自动置空
 
 ## 如何通过名字拿到类中的值
@@ -75,12 +74,16 @@ void GetPropertyValueByName(UObject* Object, const FString& PropertyName)
 其中`s`是类，`m`是成员，这里用`0`地址转换成`s`类型的指针后，对`m`进行访问，然后将其转化为一个字节的`char`并取地址，得到的结果便是这个成员相对于所在类的偏移量。
 第二步通过“容器”，也就是真正包含这个属性的对象的地址，和`FProperty`中储存的地址偏移成员`Offset_Internal`，便可以得到对应成员的地址，如果是数组，就再根据给定的下标和`ElementSize`进一步偏移。最后调用属性子类中的`GetPropertyValue`方法，将地址转换成所需要的指针，之所以不直接使用，一是为了避免用户进行指针类型的转换，二是可以在不同的属性子类中做一些特殊处理。
 
-## TFieldIterator
+## 如何去遍历所有的成员变量
 
-这个问题实际上是一个类中如何去遍历所有的成员变量？
+使用`TFieldIterator`，它会通过传入的是`UField`还是`FField`，调用不同特化版本的`GetChildFieldsFromStruct`模板函数，从`UStruct`中获取`Children`或`ChildProperties`进行遍历。
 
 ## 如何通过名字调用函数
 
 `IMPLEMENT_CLASS`会使用名为`StaticRegisterNatives##TClass`的方法来绑定当前类中所有**Native**函数的函数名和函数地址，将这些信息注册到`UClass`的`NativeFunctionLookupTable`成员中去。
 
-不管是什么函数，都会生成一个`UFunction`对象
+在UHT收集反射信息时，会对每个被`UFUNCTION`标记的函数根据其参数、返回值等信息生成一个调用`ConstructUFunction`的函数（名字是根据类型和函数名拼接而成的，暂且叫它`FuncA`），然后和被标记函数的名字进行绑定，当`ConstructUClass`调用时，作为类中的一部分信息被传入，处理函数信息时便调用前面生成的`FuncA`生成`UFunction`实例，最后用函数的名字作为key放在UClass的`FuncMap`成员中。
+
+上面处理的是有关函数的链接信息，在`.gen.cpp`文件中还可以看到`DEFINE_FUNCTION`宏为每个`UFUNCTION`标记的函数生成一个带`exec`前缀的函数
+
+FFrame
