@@ -11,7 +11,7 @@ author: Tizeng
 
 悟已往之不谏，知来者之可追。
 
-主要依据[构建lua解释器]（https://zhuanlan.zhihu.com/p/49972755）系列文章，尽量以总结的形式，少放代码。
+主要依据[构建lua解释器](https://zhuanlan.zhihu.com/p/49972755)系列文章，尽量以总结的形式，少放代码。
 
 ## 函数调用
 
