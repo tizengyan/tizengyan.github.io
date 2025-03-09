@@ -3,11 +3,9 @@ layout: post
 title: "UnLua实现学习"
 date: 2025-02-28
 categories: Lua
-excerpt: 
+excerpt: 拿了git上最新的unlua源码之后才发现，新版本改了很多实现方法，之前很多人写的教程都对不上了，要多花点时间自己看了。
 author: Tizeng
 ---
-
-拿了git上最新的unlua源码之后才发现，新版本改了很多实现方法，之前很多人写的教程都对不上了，要多花点时间自己看了。
 
 ## 绑定
 
