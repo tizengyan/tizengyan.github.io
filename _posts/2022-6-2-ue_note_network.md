@@ -59,7 +59,9 @@ PC中包含与之关联的Player（`UPlayer`，可能是LocalPlayer也可能是N
 
 当连接被关闭时，NetDriver的`TickDispatch`中会检测到，然后调用对应连接的`CleanUp`方法清除数据，最终这个连接所属的Controller会调用`OnNetCleanup`将自己释放。
 
-### Owner（[官方文档](https://dev.epicgames.com/documentation/en-us/unreal-engine/actor-owner-and-owning-connection-in-unreal-engine)）
+### Owner
+
+[官方文档](https://dev.epicgames.com/documentation/en-us/unreal-engine/actor-owner-and-owning-connection-in-unreal-engine)。
 
 Owner和所属连接（owning connection）的概念在网络同步中很重要，每个actor上都有一个Owner的引用，它可能为空，当我们用一个PlayerController控制一个Pawn时，这个controller就是Owner，一个actor所属的连接和它所关联的controller有关。
 RPC调用时服务器通过对应actor的所属连接，找到正确的客户端进行远程调用。
@@ -83,13 +85,26 @@ RPC与属性同步还有一个执行时机的区别，如果服务端调用Clien
 
 ReplicationGraph也是一种相关性的优化，它主要是利用actor在场景中空间上的相关性，将场景划分为很多格子，每个actor上设置一个`CullDistance`，在这个距离内的所有格子都被视为需要同步的区域，当一个连接的viewer进入了某个格子所代表的区域时，对应的actor就需要对其同步。参考[知乎文章](https://zhuanlan.zhihu.com/p/56922476)。
 
+### Subobject同步
+
+[官方文档](https://dev.epicgames.com/documentation/en-us/unreal-engine/replicating-uobjects-in-unreal-engine#defaultsubobjectreplication)。
+
+要同步UObject及其上面的属性，第一步是创建，以component为例，分为静态和动态两种，静态就是通过`CreateDefaultSubobject`在构造中创建，这种情况下服务器和客户端各自在spawn这个actor时创建，由于标记为`bReplicated`的actor会在spawn结束后自动同步到客户端，因此两端都会有。
+而动态则是游戏运行时通过`NewObject`创建的，它并不会自动同步到客户端上，直到我们使用了下面的两种方式主动进行同步。
+
+第一种是使用subobject的注册列表（`FSubObjectRegistry`）。首先在持有待同步UObject的actor上设置标记`bReplicateUsingRegisteredSubObjectList`为`true`，然后调用`AddReplicatedSubObject`将对象加入`ReplicatedSubObjects`列表，这样在actor同步时会将这个列表中的对象一并写入`FOutBunch`中。需要注意的是如果要删除同步的对象，要先将其冲列表中移除，因为列表持有的是对象的裸指针，不主动移除可能发生崩溃。
+
+第二种是重写actor上的`ReplicateSubobjects`方法，它会传入`UActorChannel`和数据bunch，我们通过调用channel上的`ReplicateSubobject`方法将要同步的对象写入bunch中。
+查看源码可以得知，`AActor`中就是使用这个方法将`ReplicatedComponents`数组中的组件进行同步的。
+
+无论使用上面哪种方式进行同步，UObject需要实现`IsSupportedForNetworking`并返回`true`，同时也要实现`GetLifetimeReplicatedProps`并在其中用宏注册需要同步的成员。
+
 ## RPC
 
 ProcessEvent
 CallRemoteFunction
 UNetDriver::ProcessRemoteFunction
 AActor::GetFunctionCallspace
-ReplicateSubobjects
 
 ## 属性同步（Replicated）
 
