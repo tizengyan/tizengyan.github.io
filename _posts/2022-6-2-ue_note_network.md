@@ -89,7 +89,8 @@ ReplicationGraph也是一种相关性的优化，它主要是利用actor在场�
 
 [官方文档](https://dev.epicgames.com/documentation/en-us/unreal-engine/replicating-uobjects-in-unreal-engine#defaultsubobjectreplication)。
 
-要同步UObject及其上面的属性，第一步是创建，以component为例，分为静态和动态两种，静态就是通过`CreateDefaultSubobject`在构造中创建，这种情况下服务器和客户端各自在spawn这个actor时创建，由于标记为`bReplicated`的actor会在spawn结束后自动同步到客户端，因此两端都会有。
+要同步UObject及其上面的属性，第一步是创建，以component为例，分为预先创建和动态创建两种，前者通过`CreateDefaultSubobject`在构造中创建，这种情况下服务器和客户端各自在spawn这个actor时执行，由于标记为`bReplicated`的actor会在spawn结束后自动同步到客户端，因此两端都会自动有。
+预先创建的对象`IsNameStableForNetworking`会返回`true`。
 而动态则是游戏运行时通过`NewObject`创建的，它并不会自动同步到客户端上，直到我们使用了下面的两种方式主动进行同步。
 
 第一种是使用subobject的注册列表（`FSubObjectRegistry`）。首先在持有待同步UObject的actor上设置标记`bReplicateUsingRegisteredSubObjectList`为`true`，然后调用`AddReplicatedSubObject`将对象加入`ReplicatedSubObjects`列表，这样在actor同步时会将这个列表中的对象一并写入`FOutBunch`中。需要注意的是如果要删除同步的对象，要先将其冲列表中移除，因为列表持有的是对象的裸指针，不主动移除可能发生崩溃。
@@ -99,18 +100,31 @@ ReplicationGraph也是一种相关性的优化，它主要是利用actor在场�
 
 无论使用上面哪种方式进行同步，UObject需要实现`IsSupportedForNetworking`并返回`true`，同时也要实现`GetLifetimeReplicatedProps`并在其中用宏注册需要同步的成员。
 
-## RPC
+## 属性同步原理（2025.3.15）
+
+参考[《Exploring in UE4》网络同步原理深入](https://zhuanlan.zhihu.com/p/55596030)。
+
+和属性同步相关的主要有以下几个类：
+
+* `FRepLayout`：每种类型都有一个，包含这个类型需要同步的所有属性，并提供同步所需的接口，如`ReplicateProperties`和`CallRepNotifies`。
+其中Parents数组（`FRepParentCmd`类型）表示所有需要同步的上层（top level）属性，Cmds数组（`FRepLayoutCmd`类型）表示上层属性所嵌套的子属性，如数组或结构中的属性（为什么要叫cmd？命令模式吗）。
+在NetDriver中有一个map可以通过UClass来索引对应的layout。在初次获取时如果没找到就会创建，将对应UClass中所有需要同步的属性加到Parents数组中，如果该属性是数组或结构，则递归的执行加入到Cmds中。
+* `FRepState`：每个连接的每个对象都有一个，分别储存了接收和发送需要同步的信息，以及当前同步的状态条件
+    * ReceivingRepState：缓存了对象的数据（StaticBuffer），用来比较是否发生变化，以及`FProperty`数组RepNotifies用来在同步发生的时候在客户端调用OnRep函数（FProperty中有一个`RepIndex`成员，用来在上面提到的Parents中获取数据，再通过和StaticBuffer的偏移获取同步回调函数的参数信息，这里有个问题，OnRep函数应该是没有参数的）
+    * SendingRepState：缓存了属性tracker，还有变化的历史
+* `FRepChangedPropertyTracker`：追踪发生变化的属性以及同步的条件，判断是否需要同步
+* `FObjectReplicator`：最终执行同步的类，缓存了需要同步的UObject对象指针，与StaticBuffer中的信息比较
+
+### GetLifetimeReplicatedProps做了什么
+
+想要使某个成员同步必须重写这个方法进行注册，`FRepLayout`初始化的时候会拿到传入UClass的CDO调用这个方法，获取到这个类中需要被同步的成员,`DOREPLIFETIME`系列的宏所作的就是将输入的成员信息（包括同步条件）注册到数组LifetimeProps中，最终被layout储存在Parents数组中。
+
+## RPC原理
 
 ProcessEvent
 CallRemoteFunction
 UNetDriver::ProcessRemoteFunction
 AActor::GetFunctionCallspace
-
-## 属性同步（Replicated）
-
-SendBuffer
-GetLifetimeReplicatedProps
-DOREPLIFETIME_CONDITION_NOTIFY做了什么
 
 ## 预测
 
