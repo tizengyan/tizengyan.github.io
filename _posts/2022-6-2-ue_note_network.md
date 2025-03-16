@@ -48,7 +48,8 @@ author: Tizeng
 - `UControlChannel`：每个Connection中只有一个
 - `UVoiceChannel`：每个Connection中只有一个
 
-- Packet
+- Packet：网络传输的基本单位，可以包含多个bunch
+- bunch：引擎网络同步的基本单位，分为发送用的`FOutBunch`和接收用的`FInBunch`
 - `FNetworkGUID`：用于在网络同步中识别对应的UObject，用一个uint32来区分
 
 - `FObjectReplicator`：用来表示正在被复制的对象或者执行的RPC，包含该对象的GUID
@@ -121,10 +122,12 @@ ReplicationGraph也是一种相关性的优化，它主要是利用actor在场�
 
 ## RPC原理
 
-ProcessEvent
-CallRemoteFunction
-UNetDriver::ProcessRemoteFunction
-AActor::GetFunctionCallspace
+被标记为RPC的函数在`gen.cpp`中会生成一个实现，通过生成的参数结构和名字调用`ProcessEvent`，还会有一个`exec`开头的静态函数，其中先调用了`_Validate`结尾的实现，如果通过则调用`_Implementation`结尾的实现，这就是为什么我们可以只需要实现一个后者执行逻辑。
+
+`ProcessEvent`执行时会通过`GetFunctionCallspace`判断是否需要执行RPC，如果是则调用`CallRemoteFunction`，最终通过NetDriver中的`ProcessRemoteFunction`找到对应的连接去执行。
+客户端收到bunch之后，进行一系列处理和条件判断，最终也调用`ProcessEvent`到`Invoke`，执行UFunction上绑定的`exec`开头的函数。
+
+## 可靠传输
 
 ## 预测
 
