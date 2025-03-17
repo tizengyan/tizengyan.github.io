@@ -131,5 +131,28 @@ ReplicationGraph也是一种相关性的优化，它主要是利用actor在场�
 
 ## 预测
 
-移动组件上有关于预测的逻辑
-GAS中也实现了一套预测回滚机制，这个放在单独的地方讨论。
+参考知乎文章[弱网延迟与预测Prediction](https://zhuanlan.zhihu.com/p/458192589)等和源码（`GameplayPrediction.h`）。移动组件上也有关于预测的逻辑，需要在移动相关的笔记中整理。
+
+GAS中实现了一套预测回滚机制，在客户端请求释放GA时不等待服务器的验证，本地先走逻辑，当服务器同步下来验证信息后进行校验，如果不通过则将之前的行为回滚，如结束GA、移除GE。
+要执行预测，首先`NetExecutionPolicy`要选择`LocalPredicted`，先说一下最重要的两个类：
+
+* `FPredictionKey`：一次预测中的唯一标识，发生预测时会发送给服务器，服务器经过判断会将预测的结果连带这个key返回给客户端，客户端进行比较，如果能找到key一样的返回结果则说明预测成功，否则说明预测失败，需要回滚。其中包含两个int16，一个是当前预测的key（`Current`），一个是依赖的key（`Base`），还包含一个判断预测是否结束的脏标记`bIsStale`
+* `FScopedPredictionWindow`：一次预测的作用域窗口，在进行预测的时候定义一个，利用RAII在构造时创建一个新key，保证此次预测与生成的key的唯一对应关系，出作用域之后在析构函数中将key标记为无效，防止后续的操作再使用这个key
+
+### GA预测
+
+步骤如下（源码注释）：
+1. 客户端调用`TryActivateAbility`，生成一个新的预测key，然后调用rpc函数`ServerTryActivateAbility`通知服务器
+2. 客户端继续执行，判断cd、cost是否满足，如果满足则调用`ActivateAbility`，将预测key缓存在`ActivationInfo`中
+3. 期间任何边际效应（side effect，如GE）都会生成一个新的预测key与之关联
+4. 服务器执行真正的判断，并根据结果用rpc通知客户端成功或失败，同时将预测key数组也同步过去（`ReplicatedPredictionKeyMap`）
+5. 如何预测失败，则立刻结束技能，并通过rejected代理回滚任何边际效应
+6. 如果预测成功，则等待`ReplicatedPredictionKey`同步下来，通过catchup代理回滚边际效应（之前预测自己本地上的GE）
+
+### GE预测
+
+
+
+### Attribute预测
+
+
