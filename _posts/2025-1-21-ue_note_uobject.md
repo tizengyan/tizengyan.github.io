@@ -42,6 +42,36 @@ UObject内部会缓存一个`InternalIndex`，它就是该对象在`GUObjectArra
 
 提一句`TObjectIterator`有一个类型为UObject的特化版本，直接继承自`FUObjectArray`内部的`Iterator`，因为如果要遍历所有对象，直接从全局数组中开始就行了，不需要通过哈希表。
 
+### FGCReferenceTokenStream
+
+这是gc需要用到的一个类，包含在UClass中，用来快速的找到这个类中被`UPROPERTY`宏标记的UObject指针，它内部有一个`Tokens`数组，类型是uint32，但通过一些bithack，将每个token的32位都分成三部分，分别表示嵌套深度、类型和地址偏移，通过定义一个`FGCReferenceInfo`做到：
+
+```c++
+struct FGCReferenceInfo
+{
+    // ...
+
+    /** Mapping to exactly one uint32 */
+    union
+    {
+        /** Mapping to exactly one uint32 */
+        struct
+        {
+            /** Return depth, e.g. 1 for last entry in an array, 2 for last entry in an array of structs of arrays, ... */
+            uint32 ReturnCount	: 8;
+            /** Type of reference */
+            uint32 Type			: 5; // The number of bits needs to match TFastReferenceCollector::FStackEntry::ContainerHelperType
+            /** Offset into struct/ object */
+            uint32 Offset		: 19;
+        };
+        /** uint32 value of reference info, used for easy conversion to/ from uint32 for token array */
+        uint32 Value;
+    };
+};
+```
+
+其中类型对应的是`EGCReferenceType`，它目前一共有31种，正好在5个bit覆盖范围内。当执行gc时可以根据这个类型判断对应地址偏移的数据是UObject还是数组，对其以不同的方式增加引用。`AssembleReferenceTokenStream`负责构建这些tokens信息，在标记流程后，不可达对象会被放进`GUnreachableObjects`数组中，在purge阶段被删除。
+
 ## 常用的类和接口
 
 引擎中提供了一些为UObject设计的类和接口，常用的有下面几种。
