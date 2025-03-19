@@ -149,10 +149,13 @@ GAS中实现了一套预测回滚机制，在客户端请求释放GA时不等待
 5. 如何预测失败，则立刻结束技能，并通过rejected代理回滚任何边际效应
 6. 如果预测成功，则等待`ReplicatedPredictionKey`同步下来，通过catchup代理回滚边际效应（之前预测自己本地上的GE）
 
+通过key中包含的依赖信息，如果一个GA又释放了其他GA，在生成新的预测key时会将最早开始预测的key将其进行关联，这样如果验证失败，客户端可以通过这些信息依次回滚所有相关GA。
+
 ### GE预测
 
-
+`FActiveGameplayEffect`中储存了这次GE的预测key，只要这个key有效客户端便会执行预测，服务器也会一起执行并进行同步，客户端收到后与本地的信息进行比对，如果找到了这个key则说明预测成功，由于客户端本地可能已经执行了GC，因此同步下来的GE不需要再执行这些操作。
+但`ActiveGameplayEffects`中此时会有两个GE，一个是客户端预测执行的一个是服务器同步下来的，当`ReplicatedPredictionKey`也同步下来之后，会执行catch up的delegate，将预测的GE移除。
 
 ### Attribute预测
 
-
+只有`Instant`的GE能够被预测，它在客户端被临时变为`Infinite`处理，这样改动的就是current值，便于在服务器验证之后回滚。
