@@ -145,22 +145,20 @@ new做两件事，分配内存和设置初值（或调用构造）。这个在mo
 下面是书中的一个new的实现
 
 ```c++
-extern void*
-operator new( size_t size )
+extern void* operator new(size_t size)
 {
-    if ( size == 0 )
+    if (size == 0)
         size = 1;
 
     void *last_alloc;
-
-    while ( !( last_alloc = malloc( size )))
+    while (!(last_alloc = malloc(size)))
     {
         if ( _new_handler )
             ( *_new_handler )();
         else
             return 0;
     }
-}  
+}
 ```
 
 while的作用是在内存分配失败时，让用户可以有机会使用`_new_handler`做一些事情，可能是释放内存，可能是使用新的`_new_handler`。
@@ -191,3 +189,21 @@ void* operator new(size_t, void* p)
 然而编译器并不知道那个地址上之前有没有对象，如果有还需要手动调用析构（注意不是delete，因为内存还需要）。
 
 显而易见，placement new并不支持多态，因为内存的大小已经固定了，如果在上面构造子类，很可能会超出范围导致未知的问题。
+
+## 第七章
+
+### Template
+
+**实例化**（instantiation）是模板中一个非常重要的概念，意思是“进程（process）将真正的类型和表达式绑定到template相关形式参数”的操作。
+我的理解就是真正使用这个模板的时候，就是实例化的时候，声明只是声明了一个类的蓝图，还不是一个真正的类。
+它和类的实例化是两个概念。
+
+只有在真正的实例化操作发生时，一些错误才会显现，如使用了未声明的操作符，或试图用不支持的值进行初始化。
+在此之前，只会进行有限的错误检查，如明显的语法错误。
+书中提到对于定义不存在的成员函数，或访问不存在的成员变量，都可能可以通过编译，这随编辑器的设计而定，不知道现在的编译器还会不会这样。
+
+编译器必须保持两个scope contexts：
+1. scope of the template decalration，模板声明时的情景
+2. scope of the template instantiation，模板实例化时的情景
+
+书中的例子是两个名称相同参数类型不同的全局函数，在**模板类**中调用，如果传入的参数类型不受模板实例化的类型影响，那么这个调用就会使用第一种决议，反之如果这次调用需要知道使用时的类型，也就是在实例化时，那么就会使用第二种决议类型。
